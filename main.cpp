@@ -6,7 +6,15 @@
 
 #define CHARGE_DENSITY_HPP_BODY
 
+#include "charge_density.hpp"
+#include "constant.hpp"
+#include "contact.hpp"
+#include "current.hpp"
 #include "device.hpp"
+#include "geometry.hpp"
+#include "model.hpp"
+#include "potential.hpp"
+#include "voltage.hpp"
 
 #undef CHARGE_DENSITY_HPP_BODY
 

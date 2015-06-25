@@ -2,6 +2,7 @@
 #define CHARGE_DENSITY_HPP_HEADER
 
 #include <armadillo>
+#include <stack>
 
 #include "geometry.hpp"
 #include "model.hpp"
@@ -176,8 +177,8 @@ arma::vec charge_density::get_bound_states(const geometry & g, const model & m, 
     int s0, s1, s2;
 
     // s1 - s0 is the number of eigenvalues in the interval
-    s0 = eval(a, a2, b, E0);
-    s1 = eval(a, a2, b, E1);
+    s0 = eval(E0);
+    s1 = eval(E1);
 
     // check if no bound states in this interval
     if (s1 - s0 == 0) {
@@ -227,7 +228,7 @@ arma::vec charge_density::get_bound_states(const geometry & g, const model & m, 
             E_bound(n_bound++) = E2;
         } else {
             // evaluate s at mid energy
-            s2 = eval(a, a2, b, E2);
+            s2 = eval(E2);
 
             // add intervals to stack if they contain bound states
             if (s1 - s2 > 0) {
@@ -251,6 +252,148 @@ arma::vec charge_density::get_bound_states(const geometry & g, const model & m, 
     // shrink to fit and return bound states
     E_bound.resize(n_bound);
     return E_bound;
+}
+
+arma::vec charge_density::get_intervals(const arma::vec & E_bound, double E0, double E1) {
+    using namespace arma;
+
+    // create linear lattice
+    vec lin = linspace(E0, E1, initial_waypoints);
+
+    // merge bound-state positions and linear lattice together
+    if ((E_bound.size() > 0) && (E_bound(0) < E1) && (E_bound(E_bound.size() - 1) > E0)) {
+        vec ret = vec(E_bound.size() + lin.size());
+
+        // get iterator to lin
+        auto i0 = std::begin(lin);
+
+        // get lowest bound state that is bigger than E0
+        auto i1 = std::lower_bound(std::begin(E_bound), std::end(E_bound), E0);
+
+        // index to ret vector
+        unsigned j = 0;
+
+        // merge lin and E_bound
+        while ((i0 != std::end(lin)) && (i1 != std::end(E_bound))) {
+            if (*i0 < *i1) {
+                ret(j++) = *(i0++);
+            } else {
+                ret(j++) = *(i1++);
+            }
+        }
+
+        // add rest of lin, discard rest of E_bound (out of range)
+        while (i0 != std::end(lin)) {
+            ret(j++) = *(i0++);
+        }
+
+        // shrink to fit and return
+        ret.resize(j);
+        return ret;
+    }
+
+    // no bound states in interval [E0, E1]
+    return lin;
+}
+
+template<bool source>
+arma::vec charge_density::get_A(const geometry & g, const model & m, const potential & phi, double E) {
+    using namespace arma;
+
+    // calculate 1 column of green's function
+    cx_double Sigma_s, Sigma_d;
+    cx_vec G = green_col<source>(g, m, phi, E, Sigma_s, Sigma_d);
+
+    // get spectral function for each orbital (2 values per unit cell)
+    vec A_twice;
+    if (source) {
+        A_twice = std::abs(2 * Sigma_s.imag()) * real(G % conj(G)); // G .* conj(G) = abs(G).^2
+    } else {
+        A_twice = std::abs(2 * Sigma_d.imag()) * real(G % conj(G));
+    }
+
+    // reduce spectral function to 1 value per unit cell (simple addition of both values)
+    vec A = vec(g.N_x);
+    for (unsigned i = 0; i < A.size(); ++i) {
+        A(i) = A_twice(2 * i) + A_twice(2 * i + 1);
+    }
+
+    return A;
+}
+
+arma::vec charge_density::get_n0(const geometry & g, const model & m) {
+    using namespace arma;
+
+    // check if n0 has already been calculated for this model
+    static std::map<std::string, arma::vec> n0;
+    auto it = n0.find(m.name);
+    if (it != std::end(n0)) {
+        return it->second;
+    }
+
+    // calculate new n0
+    vec x0, x1, x2, x3, w0, w1, w2, w3;
+
+    // valence band in contact region
+    vec nvc = integral([&] (double E) {
+        double dos = E / sqrt(4*m.tc1*m.tc1*m.tc2*m.tc2 - (E*E - m.tc1*m.tc1 - m.tc2*m.tc2) * (E*E - m.tc1*m.tc1 - m.tc2*m.tc2));
+        vec ret = arma::vec(2);
+        ret(0) = (1 - fermi(E, m.F[S])) * dos;
+        ret(1) = (1 - fermi(E, m.F[D])) * dos;
+        return ret;
+    }, 2, linspace(E_min, -0.5 * m.E_gc, 100), rel_tol, c::epsilon(), x0, w0);
+
+    // conduction band in contact region
+    vec ncc = integral([&] (double E) {
+        double dos = E / sqrt(4*m.tc1*m.tc1*m.tc2*m.tc2 - (E*E - m.tc1*m.tc1 - m.tc2*m.tc2) * (E*E - m.tc1*m.tc1 - m.tc2*m.tc2));
+        vec ret = arma::vec(2);
+        ret(0) = fermi(E, m.F[S]) * dos;
+        ret(1) = fermi(E, m.F[D]) * dos;
+        return ret;
+    }, 2, linspace(0.5 * m.E_gc, E_max, 100), rel_tol, c::epsilon(), x1, w1);
+
+    // valence band in central region
+    vec nvsgd = integral([&] (double E) {
+        double dos = E / sqrt(4*m.t1*m.t1*m.t2*m.t2 - (E*E - m.t1*m.t1 - m.t2*m.t2) * (E*E - m.t1*m.t1 - m.t2*m.t2));
+        vec ret = arma::vec(3);
+        ret(0) = (1 - fermi(E, m.F[S])) * dos;
+        ret(1) = (1 - fermi(E, m.F[G])) * dos;
+        ret(2) = (1 - fermi(E, m.F[D])) * dos;
+        return ret;
+    }, 3, linspace(E_min, - 0.5 * m.E_g, 100), rel_tol, c::epsilon(), x2, w2);
+
+    // conduction band in central region
+    vec ncsgd = integral([&] (double E) {
+        double dos = E / sqrt(4*m.t1*m.t1*m.t2*m.t2 - (E*E - m.t1*m.t1 - m.t2*m.t2) * (E*E - m.t1*m.t1 - m.t2*m.t2));
+        vec ret = arma::vec(3);
+        ret(0) = fermi(E, m.F[S]) * dos;
+        ret(1) = fermi(E, m.F[G]) * dos;
+        ret(2) = fermi(E, m.F[D]) * dos;
+        return ret;
+    }, 3, linspace(0.5 * m.E_g, E_max, 100), rel_tol, c::epsilon(), x3, w3);
+
+    // total charge density in contact regions
+    vec nc = nvc + ncc;
+    // total charge density in central region
+    vec nsgd = nvsgd + ncsgd;
+
+    vec ret(g.N_x);
+    ret(g.sc).fill(nc(0));
+    if (g.sox. a < g.sox.b) {
+        ret(g.sox).fill(nsgd(0));
+    }
+    ret(g.sg).fill(0);
+    ret(g.g).fill(nsgd(1));
+    ret(g.dg).fill(0);
+    if (g.dox.a < g.dox.b) {
+        ret(g.dox).fill(nsgd(2));
+    }
+    ret(g.dc).fill(nc(1));
+
+    ret *= 2 * c::e / M_PI / M_PI / g.r_cnt / g.dr / g.dx; // spintel inside (?)
+
+    n0[m.name] = ret;
+    return n0[m.name];
 }
 
 #endif
