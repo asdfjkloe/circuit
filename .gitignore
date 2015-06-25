@@ -1,0 +1,6 @@
+*.pro.user*
+2D_Poisson
+*.o
+*.log
+logfiles/*
+data/*
