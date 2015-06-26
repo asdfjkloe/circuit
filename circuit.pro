@@ -25,7 +25,8 @@ HEADERS += \
     current.hpp \
     green.hpp \
     util/gnuplot.hpp \
-    util/rwth.hpp
+    util/rwth.hpp \
+    circuit.hpp
 
 LIBS += -lblas -lgomp -lsuperlu
 
