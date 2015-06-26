@@ -183,6 +183,8 @@ arma::vec potential::get_R0(const geometry & g, const model & m, const voltage &
 }
 
 void potential::update_twice() {
+    twice.resize(data.size() * 2);
+
     // duplicate each entry
     for (unsigned i = 0; i < data.size(); ++i) {
         twice(2 * i    ) = data(i);

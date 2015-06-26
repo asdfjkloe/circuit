@@ -22,7 +22,10 @@ HEADERS += \
     charge_density.hpp \
     geometry.hpp \
     model.hpp \
-    current.hpp
+    current.hpp \
+    green.hpp \
+    util/gnuplot.hpp \
+    util/rwth.hpp
 
 LIBS += -lblas -lgomp -lsuperlu
 

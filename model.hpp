@@ -36,6 +36,54 @@ public:
                  const std::array<double, 3> & F);
 };
 
+static const model nfet_model (
+    fet_geometry,     // geometry
+    "NFET",           // name
+    0.62,             // E_g
+    0.01 * c::m_e,    // m_eff
+    0.62,             // E_gc
+    0.01 * c::m_e,    // m_efc
+{   0.62 / 2 + 0.015, // F[S]
+    0.00,             // F[G]
+    0.62 / 2 + 0.015  // F[D]
+});
+
+static const model pfet_model (
+    fet_geometry,     // geometry
+    "PFET",           // name
+    nfet_model.E_g,   // E_g
+    nfet_model.m_eff, // m_eff
+    nfet_model.E_gc,  // E_gc
+    nfet_model.m_efc, // m_efc
+{  -nfet_model.F[S],  // F[S]
+   -nfet_model.F[G],  // F[G]
+   -nfet_model.F[D]   // F[D]
+});
+
+static const model ntfet_model (
+    tfet_geometry,    // geometry
+    "NTFET",          // name
+    0.62,             // E_g
+    0.05 * c::m_e,    // m_eff
+    0.62,             // E_gc
+    0.05 * c::m_e,    // m_efc
+{  -0.62 / 2 - 0.015, // F[S] (p++)
+    0.00,             // F[G]
+   +0.62 / 2 + 0.001  // F[D] (n+)
+});
+
+static const model ptfet_model (
+    tfet_geometry,     // geometry
+    "PTFET",           // name
+    ntfet_model.E_g,   // E_g
+    ntfet_model.m_eff, // m_eff
+    ntfet_model.E_gc,  // E_gc
+    ntfet_model.m_efc, // m_efc
+{  -ntfet_model.F[S],  // F[S] (n++)
+   -ntfet_model.F[G],  // F[G]
+   -ntfet_model.F[D]   // F[D] (p+)
+});
+
 //----------------------------------------------------------------------------------------------------------------------
 
 model::model(const geometry & g,

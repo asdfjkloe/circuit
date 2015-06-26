@@ -106,7 +106,7 @@ bool device::steady_state() {
     // get current
     I = current(g, m, phi);
 
-    std::cout << it << " iterations, reldev=" << dphi/dphi_threshold << ", " << converged ? "converged!" : "DIVERGED!!!";
+    std::cout << it << " iterations, reldev=" << dphi/dphi_threshold << ", " << (converged ? "converged!" : "DIVERGED!!!");
     std::cout << ", n_E = " << E0[0].size() + E0[1].size() + E0[2].size() + E0[3].size() << std::endl;
 
     return converged;

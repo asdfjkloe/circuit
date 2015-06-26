@@ -12,9 +12,12 @@
 // forward declarations
 class potential;
 class wave_packet;
+template<bool source>
+static inline arma::cx_vec green_col(const model &, const potential &, double, arma::cx_double &, arma::cx_double &);
 
 class charge_density {
 public:
+    // integration parameters
     static constexpr double E_min = -1.2;
     static constexpr double E_max = 1.2;
     static constexpr double rel_tol = 8e-3;
@@ -36,7 +39,7 @@ private:
     static inline arma::vec get_intervals(const arma::vec & E_bound, double E0, double E1);
 
     template<bool source>
-    static inline arma::vec get_A(const geometry & g, const model & m, const potential & phi, double E);
+    static inline arma::vec get_A(const model & m, const potential & phi, double E);
 
     static inline arma::vec get_n0(const geometry & g, const model & m);
 };
@@ -66,7 +69,7 @@ charge_density::charge_density(const geometry & g, const model & m, const potent
     // integrand function definitions
     auto I_l = [&] (double E) -> vec {
         // spectral function from source
-        vec A = get_A<true>(g, m, phi, E);
+        vec A = get_A<true>(m, phi, E);
 
         // fermi distribution in source
         double f = fermi(E - phi.s(), m.F[S]);
@@ -80,7 +83,7 @@ charge_density::charge_density(const geometry & g, const model & m, const potent
     };
     auto I_r = [&] (double E) -> vec {
         // spectral function from drain
-        vec A = get_A<true>(g, m, phi, E);
+        vec A = get_A<true>(m, phi, E);
 
         // fermi distribution in drain
         double f = fermi(E - phi.d(), m.F[D]);
@@ -297,12 +300,12 @@ arma::vec charge_density::get_intervals(const arma::vec & E_bound, double E0, do
 }
 
 template<bool source>
-arma::vec charge_density::get_A(const geometry & g, const model & m, const potential & phi, double E) {
+arma::vec charge_density::get_A(const model & m, const potential & phi, double E) {
     using namespace arma;
 
     // calculate 1 column of green's function
     cx_double Sigma_s, Sigma_d;
-    cx_vec G = green_col<source>(g, m, phi, E, Sigma_s, Sigma_d);
+    cx_vec G = green_col<source>(m, phi, E, Sigma_s, Sigma_d);
 
     // get spectral function for each orbital (2 values per unit cell)
     vec A_twice;
@@ -313,7 +316,7 @@ arma::vec charge_density::get_A(const geometry & g, const model & m, const poten
     }
 
     // reduce spectral function to 1 value per unit cell (simple addition of both values)
-    vec A = vec(g.N_x);
+    vec A = vec(A_twice.size() / 2);
     for (unsigned i = 0; i < A.size(); ++i) {
         A(i) = A_twice(2 * i) + A_twice(2 * i + 1);
     }
