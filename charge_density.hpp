@@ -4,8 +4,7 @@
 #include <armadillo>
 #include <stack>
 
-#include "geometry.hpp"
-#include "model.hpp"
+#include "device_params.hpp"
 #include "util/fermi.hpp"
 #include "util/integral.hpp"
 
@@ -13,7 +12,7 @@
 class potential;
 class wave_packet;
 template<bool source>
-static inline arma::cx_vec green_col(const model &, const potential &, double, arma::cx_double &, arma::cx_double &);
+static inline arma::cx_vec green_col(const device_params & p, const potential &, double, arma::cx_double &, arma::cx_double &);
 
 class charge_density {
 public:
@@ -30,18 +29,18 @@ public:
     arma::vec total; // total density
 
     inline charge_density();
-    inline charge_density(const geometry & g, const model & m, const potential & phi, arma::vec E0[4], arma::vec W[4]);
-    inline charge_density(const geometry & g, const model & m, const potential & phi, const wave_packet psi[4]);
+    inline charge_density(const device_params & p, const potential & phi, arma::vec E0[4], arma::vec W[4]);
+    inline charge_density(const device_params & p, const potential & phi, const wave_packet psi[4]);
 
 private:
-    static inline arma::vec get_bound_states(const geometry & g, const model & m, const potential & phi);
-    static inline arma::vec get_bound_states(const geometry & g, const model & m, const potential & phi, double E0, double E1);
+    static inline arma::vec get_bound_states(const device_params & p, const potential & phi);
+    static inline arma::vec get_bound_states(const device_params & p, const potential & phi, double E0, double E1);
     static inline arma::vec get_intervals(const arma::vec & E_bound, double E0, double E1);
 
     template<bool source>
-    static inline arma::vec get_A(const model & m, const potential & phi, double E);
+    static inline arma::vec get_A(const device_params & p, const potential & phi, double E);
 
-    static inline arma::vec get_n0(const geometry & g, const model & m);
+    static inline arma::vec get_n0(const device_params & p);
 };
 
 #endif
@@ -54,28 +53,28 @@ private:
 charge_density::charge_density() {
 }
 
-charge_density::charge_density(const geometry & g, const model & m, const potential & phi, arma::vec E0[4], arma::vec W[4]) {
+charge_density::charge_density(const device_params & p, const potential & phi, arma::vec E0[4], arma::vec W[4]) {
     using namespace arma;
 
     // get a prediction of bound-state levels in the channel region
-    vec E_bound = get_bound_states(g, m, phi);
+    vec E_bound = get_bound_states(p, phi);
 
     // get integration intervals
-    vec i_lv = get_intervals(E_bound, phi.s() + E_min, phi.s() - 0.5 * m.E_gc);
-    vec i_rv = get_intervals(E_bound, phi.d() + E_min, phi.d() - 0.5 * m.E_gc);
-    vec i_lc = get_intervals(E_bound, phi.s() + 0.5 * m.E_gc, phi.s() + E_max);
-    vec i_rc = get_intervals(E_bound, phi.d() + 0.5 * m.E_gc, phi.d() + E_max);
+    vec i_lv = get_intervals(E_bound, phi.s() + E_min, phi.s() - 0.5 * p.E_gc);
+    vec i_rv = get_intervals(E_bound, phi.d() + E_min, phi.d() - 0.5 * p.E_gc);
+    vec i_lc = get_intervals(E_bound, phi.s() + 0.5 * p.E_gc, phi.s() + E_max);
+    vec i_rc = get_intervals(E_bound, phi.d() + 0.5 * p.E_gc, phi.d() + E_max);
 
     // integrand function definitions
     auto I_l = [&] (double E) -> vec {
         // spectral function from source
-        vec A = get_A<true>(m, phi, E);
+        vec A = get_A<true>(p, phi, E);
 
         // fermi distribution in source
-        double f = fermi(E - phi.s(), m.F[S]);
+        double f = fermi(E - phi.s(), p.F[S]);
 
         // multiply with f or (f - 1) depending on branching point
-        for (int i = 0; i < g.N_x; ++i) {
+        for (int i = 0; i < p.N_x; ++i) {
             A(i) *= fermi<true>(f, E - phi(i));
         }
 
@@ -83,13 +82,13 @@ charge_density::charge_density(const geometry & g, const model & m, const potent
     };
     auto I_r = [&] (double E) -> vec {
         // spectral function from drain
-        vec A = get_A<true>(m, phi, E);
+        vec A = get_A<true>(p, phi, E);
 
         // fermi distribution in drain
-        double f = fermi(E - phi.d(), m.F[D]);
+        double f = fermi(E - phi.d(), p.F[D]);
 
         // multiply with f or (f - 1) depending on branching point
-        for (int i = 0; i < g.N_x; ++i) {
+        for (int i = 0; i < p.N_x; ++i) {
             A(i) *= fermi<true>(f, E - phi(i));
         }
 
@@ -97,53 +96,109 @@ charge_density::charge_density(const geometry & g, const model & m, const potent
     };
 
     // scaling
-    double scale = - 0.5 * c::e / M_PI / M_PI / g.r_cnt / g.dr / g.dx;
+    double scale = - 0.5 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
 
     // calculate integrals (adaptively) and output the used energy lattice and weights
-    lv = scale * integral(I_l, g.N_x, i_lv, rel_tol, c::epsilon(), E0[LV], W[LV]);
-    rv = scale * integral(I_r, g.N_x, i_rv, rel_tol, c::epsilon(), E0[RV], W[RV]);
-    lc = scale * integral(I_l, g.N_x, i_lc, rel_tol, c::epsilon(), E0[LC], W[LC]);
-    rc = scale * integral(I_r, g.N_x, i_rc, rel_tol, c::epsilon(), E0[RC], W[RC]);
+    lv = scale * integral(I_l, p.N_x, i_lv, rel_tol, c::epsilon(), E0[LV], W[LV]);
+    rv = scale * integral(I_r, p.N_x, i_rv, rel_tol, c::epsilon(), E0[RV], W[RV]);
+    lc = scale * integral(I_l, p.N_x, i_lc, rel_tol, c::epsilon(), E0[LC], W[LC]);
+    rc = scale * integral(I_r, p.N_x, i_rc, rel_tol, c::epsilon(), E0[RC], W[RC]);
 
-    // calculate total charge density and add the background charge introduced by dopands
-    total = lv + rv + lc + rc + get_n0(g, m);
+    // calculate total charge density and add the background charge introduced by dopants
+    total = lv + rv + lc + rc + get_n0(p);
+}
+charge_density::charge_density(const device_params & p, const potential & phi, const wave_packet psi[4]) {
+    using namespace arma;
+
+    // calculate charge_density for specific wave_packet
+    auto get_n = [&p, &phi] (const wave_packet & psi) -> vec {
+        // initialize return vector
+        vec n(p.N_x);
+        n.fill(0.0);
+
+        #pragma omp parallel
+        {
+            // each thread gets its own copy
+            vec n_thread(n.size());
+            n_thread.fill(0.0);
+
+            // loop over all energies
+            #pragma omp for schedule(static) nowait
+            for (unsigned i = 0; i < psi.E0.size(); ++i) {
+                // load fermi factor and weight
+                double f = psi.F0(i);
+                double W = psi.W(i);
+
+                // loop over all unit cells
+                for (int j = 0; j < p.N_x; ++j) {
+                    // calculate norm for both orbitals
+                    double a = std::norm((*psi.data)(2 * j    , i));
+                    double b = std::norm((*psi.data)(2 * j + 1, i));
+
+                    // add to thread specific vector
+                    n_thread(j) += (a + b) * W * fermi<true>(f, psi.E(j, i) - phi(j));
+                }
+            }
+            // no implied barrier (nowait clause)
+
+            // add everything together
+            #pragma omp critical
+            {
+                n += n_thread;
+            }
+        }
+
+        return n;
+    };
+
+    // scaling
+    double scale = - 0.5 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
+
+    // calculate charge_density for each wave_packet
+    lv = scale * get_n(psi[LV]);
+    rv = scale * get_n(psi[RV]);
+    lc = scale * get_n(psi[LC]);
+    rc = scale * get_n(psi[RC]);
+
+    // calculate total charge density and add the background charge introduced by dopants
+    total = lv + rv + lc + rc + get_n0(p);
 }
 
-arma::vec charge_density::get_bound_states(const geometry & g, const model & m, const potential & phi) {
+arma::vec charge_density::get_bound_states(const device_params & p, const potential & phi) {
     double phi0, phi1, phi2, limit;
 
     // check for bound states in valence band
-    phi0 = arma::min(phi.data(g.sg)) - 0.5 * m.E_g;
-    phi1 = arma::max(phi.data(g.g )) - 0.5 * m.E_g;
-    phi2 = arma::min(phi.data(g.dg)) - 0.5 * m.E_g;
+    phi0 = arma::min(phi.data(p.sg)) - 0.5 * p.E_g;
+    phi1 = arma::max(phi.data(p.g )) - 0.5 * p.E_g;
+    phi2 = arma::min(phi.data(p.dg)) - 0.5 * p.E_g;
     limit = phi0 > phi2 ? phi0 : phi2;
     if (limit < phi1) {
-        return get_bound_states(g, m, phi, limit, phi1);
+        return get_bound_states(p, phi, limit, phi1);
     }
 
     // check for bound states in conduction band
-    phi0 = arma::max(phi.data(g.sg)) + 0.5 * m.E_g;
-    phi1 = arma::min(phi.data(g.g )) + 0.5 * m.E_g;
-    phi2 = arma::max(phi.data(g.dg)) + 0.5 * m.E_g;
+    phi0 = arma::max(phi.data(p.sg)) + 0.5 * p.E_g;
+    phi1 = arma::min(phi.data(p.g )) + 0.5 * p.E_g;
+    phi2 = arma::max(phi.data(p.dg)) + 0.5 * p.E_g;
     limit = phi0 < phi2 ? phi0 : phi2;
     if (limit > phi1) {
-        return get_bound_states(g, m, phi, phi1, limit);
+        return get_bound_states(p, phi, phi1, limit);
     }
 
     // no bound states found
     return arma::vec(arma::uword(0));
 }
 
-arma::vec charge_density::get_bound_states(const geometry & g, const model & m, const potential & phi, double E0, double E1) {
+arma::vec charge_density::get_bound_states(const device_params & p, const potential & phi, double E0, double E1) {
     using namespace arma;
 
     static constexpr double tol = 1e-10;
 
     // only look at the gated region
-    span range { g.sg2.a, g.dg2.b };
+    span range { p.sg2.a, p.dg2.b };
 
     // for building the hamiltonian only in the gated region
-    vec a = m.t_vec(range);   // off-diagonal
+    vec a = p.t_vec(range);   // off-diagonal
     vec a2 = a % a;           // off-diagonal squared
     vec b = phi.twice(range); // main diagonal
 
@@ -300,12 +355,12 @@ arma::vec charge_density::get_intervals(const arma::vec & E_bound, double E0, do
 }
 
 template<bool source>
-arma::vec charge_density::get_A(const model & m, const potential & phi, double E) {
+arma::vec charge_density::get_A(const device_params & p, const potential & phi, double E) {
     using namespace arma;
 
     // calculate 1 column of green's function
     cx_double Sigma_s, Sigma_d;
-    cx_vec G = green_col<source>(m, phi, E, Sigma_s, Sigma_d);
+    cx_vec G = green_col<source>(p, phi, E, Sigma_s, Sigma_d);
 
     // get spectral function for each orbital (2 values per unit cell)
     vec A_twice;
@@ -324,12 +379,12 @@ arma::vec charge_density::get_A(const model & m, const potential & phi, double E
     return A;
 }
 
-arma::vec charge_density::get_n0(const geometry & g, const model & m) {
+arma::vec charge_density::get_n0(const device_params & p) {
     using namespace arma;
 
-    // check if n0 has already been calculated for this model
+    // check if n0 has already been calculated for this device
     static std::map<std::string, arma::vec> n0;
-    auto it = n0.find(m.name);
+    auto it = n0.find(p.name);
     if (it != std::end(n0)) {
         return it->second;
     }
@@ -339,64 +394,65 @@ arma::vec charge_density::get_n0(const geometry & g, const model & m) {
 
     // valence band in contact region
     vec nvc = integral([&] (double E) {
-        double dos = E / sqrt(4*m.tc1*m.tc1*m.tc2*m.tc2 - (E*E - m.tc1*m.tc1 - m.tc2*m.tc2) * (E*E - m.tc1*m.tc1 - m.tc2*m.tc2));
+        double dos = E / sqrt(4*p.tc1*p.tc1*p.tc2*p.tc2 - (E*E - p.tc1*p.tc1 - p.tc2*p.tc2) * (E*E - p.tc1*p.tc1 - p.tc2*p.tc2));
         vec ret = arma::vec(2);
-        ret(0) = (1 - fermi(E, m.F[S])) * dos;
-        ret(1) = (1 - fermi(E, m.F[D])) * dos;
+        ret(0) = (1 - fermi(E, p.F[S])) * dos;
+        ret(1) = (1 - fermi(E, p.F[D])) * dos;
         return ret;
-    }, 2, linspace(E_min, -0.5 * m.E_gc, 100), rel_tol, c::epsilon(), x0, w0);
+    }, 2, linspace(E_min, -0.5 * p.E_gc, 100), rel_tol, c::epsilon(), x0, w0);
 
     // conduction band in contact region
     vec ncc = integral([&] (double E) {
-        double dos = E / sqrt(4*m.tc1*m.tc1*m.tc2*m.tc2 - (E*E - m.tc1*m.tc1 - m.tc2*m.tc2) * (E*E - m.tc1*m.tc1 - m.tc2*m.tc2));
+        double dos = E / sqrt(4*p.tc1*p.tc1*p.tc2*p.tc2 - (E*E - p.tc1*p.tc1 - p.tc2*p.tc2) * (E*E - p.tc1*p.tc1 - p.tc2*p.tc2));
         vec ret = arma::vec(2);
-        ret(0) = fermi(E, m.F[S]) * dos;
-        ret(1) = fermi(E, m.F[D]) * dos;
+        ret(0) = fermi(E, p.F[S]) * dos;
+        ret(1) = fermi(E, p.F[D]) * dos;
         return ret;
-    }, 2, linspace(0.5 * m.E_gc, E_max, 100), rel_tol, c::epsilon(), x1, w1);
+    }, 2, linspace(0.5 * p.E_gc, E_max, 100), rel_tol, c::epsilon(), x1, w1);
 
     // valence band in central region
     vec nvsgd = integral([&] (double E) {
-        double dos = E / sqrt(4*m.t1*m.t1*m.t2*m.t2 - (E*E - m.t1*m.t1 - m.t2*m.t2) * (E*E - m.t1*m.t1 - m.t2*m.t2));
+        double dos = E / sqrt(4*p.t1*p.t1*p.t2*p.t2 - (E*E - p.t1*p.t1 - p.t2*p.t2) * (E*E - p.t1*p.t1 - p.t2*p.t2));
         vec ret = arma::vec(3);
-        ret(0) = (1 - fermi(E, m.F[S])) * dos;
-        ret(1) = (1 - fermi(E, m.F[G])) * dos;
-        ret(2) = (1 - fermi(E, m.F[D])) * dos;
+        ret(0) = (1 - fermi(E, p.F[S])) * dos;
+        ret(1) = (1 - fermi(E, p.F[G])) * dos;
+        ret(2) = (1 - fermi(E, p.F[D])) * dos;
         return ret;
-    }, 3, linspace(E_min, - 0.5 * m.E_g, 100), rel_tol, c::epsilon(), x2, w2);
+    }, 3, linspace(E_min, - 0.5 * p.E_g, 100), rel_tol, c::epsilon(), x2, w2);
 
     // conduction band in central region
     vec ncsgd = integral([&] (double E) {
-        double dos = E / sqrt(4*m.t1*m.t1*m.t2*m.t2 - (E*E - m.t1*m.t1 - m.t2*m.t2) * (E*E - m.t1*m.t1 - m.t2*m.t2));
+        double dos = E / sqrt(4*p.t1*p.t1*p.t2*p.t2 - (E*E - p.t1*p.t1 - p.t2*p.t2) * (E*E - p.t1*p.t1 - p.t2*p.t2));
         vec ret = arma::vec(3);
-        ret(0) = fermi(E, m.F[S]) * dos;
-        ret(1) = fermi(E, m.F[G]) * dos;
-        ret(2) = fermi(E, m.F[D]) * dos;
+        ret(0) = fermi(E, p.F[S]) * dos;
+        ret(1) = fermi(E, p.F[G]) * dos;
+        ret(2) = fermi(E, p.F[D]) * dos;
         return ret;
-    }, 3, linspace(0.5 * m.E_g, E_max, 100), rel_tol, c::epsilon(), x3, w3);
+    }, 3, linspace(0.5 * p.E_g, E_max, 100), rel_tol, c::epsilon(), x3, w3);
 
     // total charge density in contact regions
     vec nc = nvc + ncc;
     // total charge density in central region
     vec nsgd = nvsgd + ncsgd;
 
-    vec ret(g.N_x);
-    ret(g.sc).fill(nc(0));
-    if (g.sox. a < g.sox.b) {
-        ret(g.sox).fill(nsgd(0));
+    vec ret(p.N_x);
+    ret(p.sc).fill(nc(0));
+    if (p.sox. a < p.sox.b) {
+        ret(p.sox).fill(nsgd(0));
     }
-    ret(g.sg).fill(0);
-    ret(g.g).fill(nsgd(1));
-    ret(g.dg).fill(0);
-    if (g.dox.a < g.dox.b) {
-        ret(g.dox).fill(nsgd(2));
+    ret(p.sg).fill(0);
+    ret(p.g).fill(nsgd(1));
+    ret(p.dg).fill(0);
+    if (p.dox.a < p.dox.b) {
+        ret(p.dox).fill(nsgd(2));
     }
-    ret(g.dc).fill(nc(1));
+    ret(p.dc).fill(nc(1));
 
-    ret *= 2 * c::e / M_PI / M_PI / g.r_cnt / g.dr / g.dx; // spintel inside (?)
+    ret *= 2 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx; // spintel inside (?)
 
-    n0[m.name] = ret;
-    return n0[m.name];
+    // save and return n0
+    n0[p.name] = ret;
+    return n0[p.name];
 }
 
 #endif

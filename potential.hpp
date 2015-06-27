@@ -6,8 +6,7 @@
 
 #include "charge_density.hpp"
 #include "constant.hpp"
-#include "geometry.hpp"
-#include "model.hpp"
+#include "device_params.hpp"
 #include "voltage.hpp"
 #include "util/anderson.hpp"
 
@@ -17,19 +16,19 @@ public:
     arma::vec twice;
 
     inline potential();
-    inline potential(const geometry & g, const arma::vec & R);
-    inline potential(const geometry & g, const arma::vec & R0, const charge_density & n);
-    inline potential(const geometry & g, const model & m, const voltage & V);
-    inline double update(const geometry & g, const arma::vec & R0, const charge_density & n, anderson & mr_neo);
+    inline potential(const device_params & p, const arma::vec & R);
+    inline potential(const device_params & p, const arma::vec & R0, const charge_density & n);
+    inline potential(const device_params & p, const voltage & V);
+    inline double update(const device_params & p, const arma::vec & R0, const charge_density & n, anderson & mr_neo);
 
     inline double & operator()(int index);
     inline const double & operator()(int index) const;
     inline double s() const;
     inline double d() const;
 
-    inline void smooth(const geometry & g, const model & m);
+    inline void smooth(const device_params & p);
 
-    static inline arma::vec get_R0(const geometry & g, const model & m, const voltage & V);
+    static inline arma::vec get_R0(const device_params & p, const voltage & V);
 
 private:
     enum {
@@ -44,32 +43,32 @@ private:
     template<bool minmax>
     inline void smooth(unsigned x0, unsigned x1);
 
-    static inline arma::vec get_R(const geometry & g, const arma::vec & R0, const charge_density & n);
-    static inline const arma::sp_mat & get_S(const geometry & g);
-    static inline const std::array<arma::mat, 4> & get_eps(const geometry & g);
+    static inline arma::vec get_R(const device_params & p, const arma::vec & R0, const charge_density & n);
+    static inline const arma::sp_mat & get_S(const device_params & p);
+    static inline const std::array<arma::mat, 4> & get_eps(const device_params & p);
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 potential::potential() {
 }
-potential::potential(const geometry & g, const arma::vec & R) {
+potential::potential(const device_params & p, const arma::vec & R) {
     using namespace arma;
-    vec phi2D = spsolve(get_S(g), R);
-    data = phi2D({uword((g.M_cnt - 1) * g.N_x), uword(g.M_cnt * g.N_x - 1)});
+    vec phi2D = spsolve(get_S(p), R);
+    data = phi2D({uword((p.M_cnt - 1) * p.N_x), uword(p.M_cnt * p.N_x - 1)});
 
     update_twice();
 }
-potential::potential(const geometry & g, const arma::vec & R0, const charge_density & n)
-    : potential(g, get_R(g, R0, n)) {
+potential::potential(const device_params & p, const arma::vec & R0, const charge_density & n)
+    : potential(p, get_R(p, R0, n)) {
 }
-potential::potential(const geometry & g, const model & m, const voltage & V)
-    : potential(g, get_R0(g, m, V)) {
+potential::potential(const device_params & p, const voltage & V)
+    : potential(p, get_R0(p, V)) {
 }
 
-double potential::update(const geometry & g, const arma::vec & R0, const charge_density & n, anderson & mr_neo) {
+double potential::update(const device_params & p, const arma::vec & R0, const charge_density & n, anderson & mr_neo) {
     // calculate undamped update
-    potential phi_update(g, R0, n);
+    potential phi_update(p, R0, n);
 
     // anderson mixing
     arma::vec f = phi_update.data - data;
@@ -94,39 +93,39 @@ double potential::d() const {
     return data[data.size() - 1];
 }
 
-void potential::smooth(const geometry & g, const model & m) {
+void potential::smooth(const device_params & p) {
     // smooth source region
-    if (m.F[S] > 0) {
-        smooth<true>(0, g.N_sc + g.N_sox + g.N_sg + g.N_g * 0.05);
+    if (p.F[S] > 0) {
+        smooth<true>(0, p.N_sc + p.N_sox + p.N_sg + p.N_g * 0.05);
     } else {
-        smooth<false>(0, g.N_sc + g.N_sox + g.N_sg + g.N_g * 0.05);
+        smooth<false>(0, p.N_sc + p.N_sox + p.N_sg + p.N_g * 0.05);
     }
 
     // smooth drain region
-    if (m.F[D] > 0) {
-        smooth<true>(g.N_sc + g.N_sox + g.N_sg + g.N_g * 0.95, g.N_x);
+    if (p.F[D] > 0) {
+        smooth<true>(p.N_sc + p.N_sox + p.N_sg + p.N_g * 0.95, p.N_x);
     } else {
-        smooth<false>(g.N_sc + g.N_sox + g.N_sg + g.N_g * 0.95, g.N_x);
+        smooth<false>(p.N_sc + p.N_sox + p.N_sg + p.N_g * 0.95, p.N_x);
     }
 
     update_twice();
 }
 
-arma::vec potential::get_R0(const geometry & g, const model & m, const voltage & V0) {
+arma::vec potential::get_R0(const device_params & p, const voltage & V0) {
     using namespace arma;
 
     // shortcuts
-    double dr2 = 1.0 / g.dr / g.dr;
-    double dx2 = 1.0 / g.dx / g.dx;
+    double dr2 = 1.0 / p.dr / p.dr;
+    double dx2 = 1.0 / p.dx / p.dx;
 
     // get reference to 4 eps matrices (one for each direction)
-    const std::array<arma::mat, 4> & eps = get_eps(g);
+    const std::array<arma::mat, 4> & eps = get_eps(p);
 
     // add built-in voltages
-    std::array<double, 3> V = - (V0 + m.F);
+    std::array<double, 3> V = - (V0 + p.F);
 
     // init return vector
-    vec R0(g.N_x * g.M_r);
+    vec R0(p.N_x * p.M_r);
     R0.fill(0.0);
 
     // create R0 from geometry and voltages
@@ -134,47 +133,47 @@ arma::vec potential::get_R0(const geometry & g, const model & m, const voltage &
     double r, rp;
 
     // add dirichlet boundary conditions where necessary
-    j = g.M_cnt - 1;
-    r = j * g.dr + 0.5 * g.dr;
-    rp = r + 0.5 * g.dr;
-    k = j * g.N_x;
-    for (i = 0; i < g.N_sc; ++i) {
+    j = p.M_cnt - 1;
+    r = j * p.dr + 0.5 * p.dr;
+    rp = r + 0.5 * p.dr;
+    k = j * p.N_x;
+    for (i = 0; i < p.N_sc; ++i) {
         R0(k++) -= dr2 * rp * eps[O](i, j) * V[S];
     }
-    k = j * g.N_x + g.N_x - g.N_dc;
-    for (i = g.N_x - g.N_dc; i < g.N_x; ++i) {
+    k = j * p.N_x + p.N_x - p.N_dc;
+    for (i = p.N_x - p.N_dc; i < p.N_x; ++i) {
         R0(k++) -= dr2 * rp * eps[O](i, j) * V[D];
     }
-    for (j = g.M_cnt; j < g.M_cnt + g.M_ox - 1; ++j) {
-        r = j * g.dr + 0.5 * g.dr;
-        R0(k) -= dx2 * r * eps[L](g.N_sc, j) * V[S];
-        k += g.N_sox + g.N_sg + g.N_g + g.N_dg + g.N_dox - 1;
-        R0(k++) -= dx2 * r * eps[R](g.N_x - g.N_dc - 1, j) * V[D];
+    for (j = p.M_cnt; j < p.M_cnt + p.M_ox - 1; ++j) {
+        r = j * p.dr + 0.5 * p.dr;
+        R0(k) -= dx2 * r * eps[L](p.N_sc, j) * V[S];
+        k += p.N_sox + p.N_sg + p.N_g + p.N_dg + p.N_dox - 1;
+        R0(k++) -= dx2 * r * eps[R](p.N_x - p.N_dc - 1, j) * V[D];
     }
-    r = j * g.dr + 0.5 * g.dr;
-    rp = r + 0.5 * g.dr;
-    R0(k) -= dx2 * r * eps[L](g.N_sc, j) * V[S];
-    for (i = g.N_sc; i < g.N_sc + g.N_sox; ++i) {
+    r = j * p.dr + 0.5 * p.dr;
+    rp = r + 0.5 * p.dr;
+    R0(k) -= dx2 * r * eps[L](p.N_sc, j) * V[S];
+    for (i = p.N_sc; i < p.N_sc + p.N_sox; ++i) {
         R0(k++) -= dr2 * rp * eps[O](i, j) * V[S];
     }
-    k += g.N_sg;
-    for (i = g.N_sc + g.N_sox + g.N_sg; i < g.N_sc + g.N_sox + g.N_sg + g.N_g; ++i) {
+    k += p.N_sg;
+    for (i = p.N_sc + p.N_sox + p.N_sg; i < p.N_sc + p.N_sox + p.N_sg + p.N_g; ++i) {
         R0(k++) -= dr2 * rp * eps[O](i, j) * V[G];
     }
-    k += g.N_dg;
-    for (i = g.N_x - g.N_dc - g.N_dox; i < g.N_x - g.N_dc; ++i) {
+    k += p.N_dg;
+    for (i = p.N_x - p.N_dc - p.N_dox; i < p.N_x - p.N_dc; ++i) {
         R0(k++) -= dr2 * rp * eps[O](i, j) * V[D];
     }
-    R0(k - 1) -= dx2 * r * eps[R](g.N_x - g.N_dc - 1, j) * V[D];
+    R0(k - 1) -= dx2 * r * eps[R](p.N_x - p.N_dc - 1, j) * V[D];
 
-    for (j = g.M_cnt + g.M_ox; j < g.M_r; ++j) {
-        r = j * g.dr + 0.5 * g.dr;
-        R0(k) -= dx2 * r * eps[L](g.N_sc + g.N_sox, j) * V[S];
-        k += g.N_sg - 1;
-        R0(k++) -= dx2 * r * eps[R](g.N_sc + g.N_sox + g.N_sg - 1, j) * V[G];
-        R0(k) -= dx2 * r * eps[L](g.N_sc + g.N_sox + g.N_sg + g.N_g, j) * V[G];
-        k += g.N_dg - 1;
-        R0(k++) -= dx2 * r * eps[R](g.N_x - g.N_dc - g.N_dox - 1, j) * V[D];
+    for (j = p.M_cnt + p.M_ox; j < p.M_r; ++j) {
+        r = j * p.dr + 0.5 * p.dr;
+        R0(k) -= dx2 * r * eps[L](p.N_sc + p.N_sox, j) * V[S];
+        k += p.N_sg - 1;
+        R0(k++) -= dx2 * r * eps[R](p.N_sc + p.N_sox + p.N_sg - 1, j) * V[G];
+        R0(k) -= dx2 * r * eps[L](p.N_sc + p.N_sox + p.N_sg + p.N_g, j) * V[G];
+        k += p.N_dg - 1;
+        R0(k++) -= dx2 * r * eps[R](p.N_x - p.N_dc - p.N_dox - 1, j) * V[D];
     }
 
     // shrink to fit and return
@@ -245,18 +244,18 @@ void potential::smooth(unsigned x0, unsigned x1) {
     }
 }
 
-arma::vec potential::get_R(const geometry & g, const arma::vec & R0, const charge_density & n) {
+arma::vec potential::get_R(const device_params & p, const arma::vec & R0, const charge_density & n) {
     using namespace arma;
     vec R = R0;
 
     // add non-constant part to R0 due to charge_density at the boundary of the cnt
-    R({uword((g.M_cnt - 1) * g.N_x), uword(g.M_cnt * g.N_x - 1)}) += n.total * g.r_cnt * 1e9; // 10^9 because of m->nm in eps_0
+    R({uword((p.M_cnt - 1) * p.N_x), uword(p.M_cnt * p.N_x - 1)}) += n.total * p.r_cnt * 1e9; // 10^9 because of m->nm in eps_0
     return R;
 }
-const arma::sp_mat & potential::get_S(const geometry & g) {
-    // check if S was already calculated for this geometry
+const arma::sp_mat & potential::get_S(const device_params & p) {
+    // check if S was already calculated for this device
     static std::map<std::string, arma::sp_mat> S;
-    auto it = S.find(g.name);
+    auto it = S.find(p.name);
     if (it != std::end(S)) {
         return it->second;
     }
@@ -265,15 +264,15 @@ const arma::sp_mat & potential::get_S(const geometry & g) {
     using namespace arma;
 
     // shortcuts
-    double dr2 = 1.0 / g.dr / g.dr;
-    double dx2 = 1.0 / g.dx / g.dx;
+    double dr2 = 1.0 / p.dr / p.dr;
+    double dx2 = 1.0 / p.dx / p.dx;
 
     // get reference to 4 eps matrices (one for each direction)
-    const std::array<arma::mat, 4> & eps = get_eps(g);
+    const std::array<arma::mat, 4> & eps = get_eps(p);
 
     // helper objects to create sparse matrix faster
-    umat indices(2, g.M_r * g.N_x * 5);
-    vec values(     g.M_r * g.N_x * 5);
+    umat indices(2, p.M_r * p.N_x * 5);
+    vec values(     p.M_r * p.N_x * 5);
     uword N_v = 0;
     auto set_value = [&indices, &values, &N_v] (uword i, uword j, double val) {
         indices(0, N_v) = i;
@@ -284,15 +283,15 @@ const arma::sp_mat & potential::get_S(const geometry & g) {
     // start values
     int k     = 0;     // current main diagonal element
     int i0    = 0;     // left i limit
-    int i1    = g.N_x; // right i limit
-    int delta = g.N_x; // distance to next vertical coupling off diagonal
+    int i1    = p.N_x; // right i limit
+    int delta = p.N_x; // distance to next vertical coupling off diagonal
 
     // main loop over rows
-    for (int j = 0; j < g.M_r; ++j) {
+    for (int j = 0; j < p.M_r; ++j) {
         // radius
-        double r = (j + 0.5) * g.dr;
-        double rm = r - 0.5 * g.dr;
-        double rp = r + 0.5 * g.dr;
+        double r = (j + 0.5) * p.dr;
+        double rm = r - 0.5 * p.dr;
+        double rp = r + 0.5 * p.dr;
 
         // loop over columns
         for (int i = i0; i < i1; ++i) {
@@ -308,17 +307,17 @@ const arma::sp_mat & potential::get_S(const geometry & g) {
             if (i == 1) {
                 right *= 2;
             }
-            if (i == g.N_x - 1) {
+            if (i == p.N_x - 1) {
                 left *= 2;
             }
 
             // vertical von Neumann boundary conditions
             if (j == 1) {
-                outside -= dr2 * 0.5 * g.dr * eps[O](i, 0);
+                outside -= dr2 * 0.5 * p.dr * eps[O](i, 0);
                 outside *= 2;
             }
-            if (j == g.M_r - 1) {
-                inside += dr2 * 0.5 * g.dr * eps[I](i, g.M_r - 1);
+            if (j == p.M_r - 1) {
+                inside += dr2 * 0.5 * p.dr * eps[I](i, p.M_r - 1);
                 inside *= 2;
             }
 
@@ -338,35 +337,35 @@ const arma::sp_mat & potential::get_S(const geometry & g) {
         }
 
         // cut off source, drain contacts
-        if (j == g.M_cnt - 1) {
-            i0 = g.N_sc;
-            i1 = g.N_x - g.N_dc;
-            delta = g.N_x - g.N_sc;
+        if (j == p.M_cnt - 1) {
+            i0 = p.N_sc;
+            i1 = p.N_x - p.N_dc;
+            delta = p.N_x - p.N_sc;
         }
-        if (j == g.M_cnt) {
-            delta = g.N_x - g.N_sc - g.N_dc;
+        if (j == p.M_cnt) {
+            delta = p.N_x - p.N_sc - p.N_dc;
         }
 
         // cut off gate contact
-        if (j == g.M_cnt + g.M_ox - 1) {
-            i0 = g.N_sc + g.N_sox;
-            i1 = i0 + g.N_sg;
-            delta = g.N_x - g.N_sc - g.N_dc - g.N_sox;
+        if (j == p.M_cnt + p.M_ox - 1) {
+            i0 = p.N_sc + p.N_sox;
+            i1 = i0 + p.N_sg;
+            delta = p.N_x - p.N_sc - p.N_dc - p.N_sox;
         }
-        if ((j == g.M_cnt + g.M_ox) && (i0 == g.N_sc + g.N_sox)) {
-            delta = g.N_x - g.N_sc - g.N_dc - g.N_sox - g.N_g;
+        if ((j == p.M_cnt + p.M_ox) && (i0 == p.N_sc + p.N_sox)) {
+            delta = p.N_x - p.N_sc - p.N_dc - p.N_sox - p.N_g;
         }
-        if ((j == g.M_cnt + g.M_ox) && (i0 == g.N_sc + g.N_sox + g.N_sg + g.N_g)) {
-            delta = g.N_x - g.N_sc - g.N_dc - g.N_sox - g.N_g - g.N_dox;
+        if ((j == p.M_cnt + p.M_ox) && (i0 == p.N_sc + p.N_sox + p.N_sg + p.N_g)) {
+            delta = p.N_x - p.N_sc - p.N_dc - p.N_sox - p.N_g - p.N_dox;
         }
-        if (j >= g.M_cnt + g.M_ox) {
-            if (i0 == g.N_sc + g.N_sox) {
-                i0 = i1 + g.N_g;
-                i1 = i0 + g.N_dg;
+        if (j >= p.M_cnt + p.M_ox) {
+            if (i0 == p.N_sc + p.N_sox) {
+                i0 = i1 + p.N_g;
+                i1 = i0 + p.N_dg;
                 --j; // repeat i loop for second part (right side of gate)
             } else {
-                i1 = i0 - g.N_g;
-                i0 = i1 - g.N_sg;
+                i1 = i0 - p.N_g;
+                i0 = i1 - p.N_sg;
             }
         }
     }
@@ -376,13 +375,13 @@ const arma::sp_mat & potential::get_S(const geometry & g) {
     values.resize(N_v);
 
     // create, save and return sparse matrix S
-    S[g.name] = sp_mat(indices, values);
-    return S[g.name];
+    S[p.name] = sp_mat(indices, values);
+    return S[p.name];
 }
-const std::array<arma::mat, 4> & potential::get_eps(const geometry & g) {
+const std::array<arma::mat, 4> & potential::get_eps(const device_params & p) {
     // check if eps was already calculated for this geometry
     static std::map<std::string, std::array<arma::mat, 4>> eps;
-    auto it = eps.find(g.name);
+    auto it = eps.find(p.name);
     if (it != std::end(eps)) {
         return it->second;
     }
@@ -392,89 +391,89 @@ const std::array<arma::mat, 4> & potential::get_eps(const geometry & g) {
     std::array<arma::mat, 4> e;
 
     for (int i = 0; i < 4; ++i) {
-        e[i] = arma::mat(g.N_x, g.M_r);
+        e[i] = arma::mat(p.N_x, p.M_r);
         e[i].fill(c::eps_0);
     }
 
     int i, j;
 
     // cnt
-    for (j = 0; j < g.M_cnt - 1; ++j) {
-        for (i = 0; i < g.N_x; ++i) {
-            e[L](i, j) = g.eps_cnt * c::eps_0;
-            e[R](i, j) = g.eps_cnt * c::eps_0;
-            e[I](i, j) = g.eps_cnt * c::eps_0;
-            e[O](i, j) = g.eps_cnt * c::eps_0;
+    for (j = 0; j < p.M_cnt - 1; ++j) {
+        for (i = 0; i < p.N_x; ++i) {
+            e[L](i, j) = p.eps_cnt * c::eps_0;
+            e[R](i, j) = p.eps_cnt * c::eps_0;
+            e[I](i, j) = p.eps_cnt * c::eps_0;
+            e[O](i, j) = p.eps_cnt * c::eps_0;
         }
     }
 
     // cnt border
-    for (i = 0; i < g.N_sc; ++i) {
-        e[L](i, j) = 0.5 * (1.0 + g.eps_cnt) * c::eps_0;
-        e[R](i, j) = 0.5 * (1.0 + g.eps_cnt) * c::eps_0;
-        e[I](i, j) = g.eps_cnt * c::eps_0;
+    for (i = 0; i < p.N_sc; ++i) {
+        e[L](i, j) = 0.5 * (1.0 + p.eps_cnt) * c::eps_0;
+        e[R](i, j) = 0.5 * (1.0 + p.eps_cnt) * c::eps_0;
+        e[I](i, j) = p.eps_cnt * c::eps_0;
         e[O](i, j) = c::eps_0;
     }
-    e[L](i, j) = 0.5 * (1.0 + g.eps_cnt) * c::eps_0;
-    e[R](i, j) = 0.5 * (g.eps_ox + g.eps_cnt) * c::eps_0;
-    e[I](i, j) = g.eps_cnt * c::eps_0;
-    e[O](i, j) = 0.5 * (1.0 + g.eps_ox) * c::eps_0;
-    for (++i; i < g.N_x - g.N_dc - 1; ++i) {
-        e[L](i, j) = 0.5 * (g.eps_ox + g.eps_cnt) * c::eps_0;
-        e[R](i, j) = 0.5 * (g.eps_ox + g.eps_cnt) * c::eps_0;
-        e[I](i, j) = g.eps_cnt * c::eps_0;
-        e[O](i, j) = g.eps_ox * c::eps_0;
+    e[L](i, j) = 0.5 * (1.0 + p.eps_cnt) * c::eps_0;
+    e[R](i, j) = 0.5 * (p.eps_ox + p.eps_cnt) * c::eps_0;
+    e[I](i, j) = p.eps_cnt * c::eps_0;
+    e[O](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
+    for (++i; i < p.N_x - p.N_dc - 1; ++i) {
+        e[L](i, j) = 0.5 * (p.eps_ox + p.eps_cnt) * c::eps_0;
+        e[R](i, j) = 0.5 * (p.eps_ox + p.eps_cnt) * c::eps_0;
+        e[I](i, j) = p.eps_cnt * c::eps_0;
+        e[O](i, j) = p.eps_ox * c::eps_0;
     }
-    e[L](i, j) = 0.5 * (g.eps_ox + g.eps_cnt) * c::eps_0;
-    e[R](i, j) = 0.5 * (1.0 + g.eps_cnt) * c::eps_0;
-    e[I](i, j) = g.eps_cnt * c::eps_0;
-    e[O](i, j) = 0.5 * (1.0 + g.eps_ox) * c::eps_0;
-    for (++i; i < g.N_x; ++i) {
-        e[L](i, j) = 0.5 * (1.0 + g.eps_cnt) * c::eps_0;
-        e[R](i, j) = 0.5 * (1.0 + g.eps_cnt) * c::eps_0;
-        e[I](i, j) = g.eps_cnt * c::eps_0;
+    e[L](i, j) = 0.5 * (p.eps_ox + p.eps_cnt) * c::eps_0;
+    e[R](i, j) = 0.5 * (1.0 + p.eps_cnt) * c::eps_0;
+    e[I](i, j) = p.eps_cnt * c::eps_0;
+    e[O](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
+    for (++i; i < p.N_x; ++i) {
+        e[L](i, j) = 0.5 * (1.0 + p.eps_cnt) * c::eps_0;
+        e[R](i, j) = 0.5 * (1.0 + p.eps_cnt) * c::eps_0;
+        e[I](i, j) = p.eps_cnt * c::eps_0;
         e[O](i, j) = c::eps_0;
     }
 
     // oxide
-    for (++j; j < g.M_cnt + g.M_ox - 1; ++j) {
-        i = g.N_sc;
+    for (++j; j < p.M_cnt + p.M_ox - 1; ++j) {
+        i = p.N_sc;
         e[L](i, j) = c::eps_0;
-        e[R](i, j) = g.eps_ox * c::eps_0;
-        e[I](i, j) = 0.5 * (1.0 + g.eps_ox) * c::eps_0;
-        e[O](i, j) = 0.5 * (1.0 + g.eps_ox) * c::eps_0;
-        for (++i; i < g.N_x - g.N_dc - 1; ++i) {
-            e[L](i, j) = g.eps_ox * c::eps_0;
-            e[R](i, j) = g.eps_ox * c::eps_0;
-            e[I](i, j) = g.eps_ox * c::eps_0;
-            e[O](i, j) = g.eps_ox * c::eps_0;
+        e[R](i, j) = p.eps_ox * c::eps_0;
+        e[I](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
+        e[O](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
+        for (++i; i < p.N_x - p.N_dc - 1; ++i) {
+            e[L](i, j) = p.eps_ox * c::eps_0;
+            e[R](i, j) = p.eps_ox * c::eps_0;
+            e[I](i, j) = p.eps_ox * c::eps_0;
+            e[O](i, j) = p.eps_ox * c::eps_0;
         }
-        e[L](i, j) = g.eps_ox * c::eps_0;
+        e[L](i, j) = p.eps_ox * c::eps_0;
         e[R](i, j) = c::eps_0;
-        e[I](i, j) = 0.5 * (1.0 + g.eps_ox) * c::eps_0;
-        e[O](i, j) = 0.5 * (1.0 + g.eps_ox) * c::eps_0;
+        e[I](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
+        e[O](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
     }
 
     // oxide border
-    i = g.N_sc;
+    i = p.N_sc;
     e[L](i, j) = c::eps_0;
-    e[R](i, j) = 0.5 * (1.0 + g.eps_ox) * c::eps_0;
-    e[I](i, j) = 0.5 * (1.0 + g.eps_ox) * c::eps_0;
+    e[R](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
+    e[I](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
     e[O](i, j) = c::eps_0;
-    for (++i; i < g.N_x - g.N_dc - 1; ++i) {
-        e[L](i, j) = 0.5 * (1.0 + g.eps_ox) * c::eps_0;
-        e[R](i, j) = 0.5 * (1.0 + g.eps_ox) * c::eps_0;
-        e[I](i, j) = g.eps_ox * c::eps_0;
+    for (++i; i < p.N_x - p.N_dc - 1; ++i) {
+        e[L](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
+        e[R](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
+        e[I](i, j) = p.eps_ox * c::eps_0;
         e[O](i, j) = c::eps_0;
     }
-    e[L](i, j) = 0.5 * (1.0 + g.eps_ox) * c::eps_0;
+    e[L](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
     e[R](i, j) = c::eps_0;
-    e[I](i, j) = 0.5 * (1.0 + g.eps_ox) * c::eps_0;
+    e[I](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
     e[O](i, j) = c::eps_0;
 
     // save and return eps
-    eps[g.name] = e;
-    return eps[g.name];
+    eps[p.name] = e;
+    return eps[p.name];
 }
 
 #endif

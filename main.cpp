@@ -11,11 +11,13 @@
 #include "contact.hpp"
 #include "current.hpp"
 #include "device.hpp"
+#include "device_params.hpp"
 #include "geometry.hpp"
 #include "green.hpp"
 #include "model.hpp"
 #include "potential.hpp"
 #include "voltage.hpp"
+#include "wave_packet.hpp"
 
 #undef CHARGE_DENSITY_HPP_BODY
 
@@ -25,7 +27,7 @@ using namespace arma;
 using namespace std;
 
 int main() {
-    device d(fet_geometry, nfet_model);
+    device d(nfet);
     d.steady_state();
     return 0;
 }
