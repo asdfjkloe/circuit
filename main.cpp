@@ -29,6 +29,7 @@ using namespace std;
 int main() {
     device d(nfet);
     d.steady_state();
+    d.init_time_evolution();
     return 0;
 }
 
