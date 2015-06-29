@@ -4,7 +4,7 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 INCLUDEPATH += .
-DEPENDPATH += $
+DEPENDPATH *= $
 
 SOURCES += main.cpp
 

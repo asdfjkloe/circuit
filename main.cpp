@@ -15,6 +15,7 @@
 #include "device_params.hpp"
 #include "geometry.hpp"
 #include "green.hpp"
+#include "inverter.hpp"
 #include "model.hpp"
 #include "potential.hpp"
 #include "voltage.hpp"
@@ -28,26 +29,9 @@ using namespace arma;
 using namespace std;
 
 int main() {
-    circuit<3> c;
-    int nfet_i = c.add_device(nfet);
-    int pfet_i = c.add_device(pfet);
-    c.link(nfet_i, S, S);
-    c.link(nfet_i, D, pfet_i, D);
-    c.link(nfet_i, G, G);
-    c.link(pfet_i, S, D);
-    c.link(pfet_i, G, G);
+    inverter inv(nfet, pfet, 1e-16);
 
-    c.contact(S)->V = 0.0;
-    c.contact(G)->V = 0.2;
-    c.contact(D)->V = 0.5;
-
-    cout << "(nfet) V_s = " << c[nfet_i].contacts[S]->V << endl;
-    cout << "(nfet) V_d = " << c[nfet_i].contacts[D]->V << endl;
-    cout << "(nfet) V_g = " << c[nfet_i].contacts[G]->V << endl;
-    cout << "(pfet) V_s = " << c[pfet_i].contacts[S]->V << endl;
-    cout << "(pfet) V_d = " << c[pfet_i].contacts[D]->V << endl;
-    cout << "(pfet) V_g = " << c[pfet_i].contacts[G]->V << endl;
-
+    inv.steady_state({ 0.0, 0.4, 0.5 });
 
     return 0;
 }
