@@ -53,7 +53,10 @@ public:
     inline void init_time_evolution(int N_t);
 
     // propagate wavefunctions to the next time step
-    inline bool time_step(const voltage & V);
+    inline bool time_step();
+
+    // update contacts (current)
+    inline void update_contacts();
 
 private:
     // variables used by the time-evolution algorithm
@@ -177,9 +180,12 @@ void device::init_time_evolution(int N_t) {
     cx_eye = eye<cx_mat>(2 * p.N_x, 2 * p.N_x);
 }
 
-bool device::time_step(const voltage & V) {
+bool device::time_step() {
     using namespace arma;
     using namespace std::complex_literals;
+
+    // get voltage
+    voltage V = { contacts[S]->V, contacts[D]->V, contacts[G]->V };
 
     // shortcut
     static constexpr double g = c::g;
@@ -287,6 +293,11 @@ bool device::time_step(const voltage & V) {
               << ", " << (converged ? "" : "DIVERGED!!!") << std::endl;
 
     return converged;
+}
+
+void device::update_contacts() {
+    contacts[S]->update(I[m].s(), c::dt);
+    contacts[D]->update(I[m].d(), c::dt);
 }
 
 void device::calc_q() {

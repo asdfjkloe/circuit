@@ -4,7 +4,7 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 INCLUDEPATH += .
-DEPENDPATH += $
+DEPENDPATH *= $
 
 SOURCES += main.cpp
 
@@ -28,7 +28,8 @@ HEADERS += \
     util/rwth.hpp \
     circuit.hpp \
     device_params.hpp \
-    wave_packet.hpp
+    wave_packet.hpp \
+    inverter.hpp
 
 LIBS += -lblas -lgomp -lsuperlu
 
