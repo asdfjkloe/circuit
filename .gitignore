@@ -1,5 +1,5 @@
 *.pro.user*
-2D_Poisson
+circuit
 *.o
 *.log
 logfiles/*
