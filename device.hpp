@@ -1,6 +1,7 @@
 #ifndef DEVICE_HPP
 #define DEVICE_HPP
 
+#include <iomanip>
 #include <memory>
 
 #include "constant.hpp"
@@ -9,6 +10,7 @@
 #include "device_params.hpp"
 #include "potential.hpp"
 #include "voltage.hpp"
+#include "util/inverse.hpp"
 
 class device {
 public:
@@ -19,10 +21,13 @@ public:
     // parameters
     device_params p;
 
+    // current time step
+    unsigned m;
+
     // observables
-    potential phi;
-    charge_density n;
-    current I;
+    std::vector<potential> phi;
+    std::vector<charge_density> n;
+    std::vector<current> I;
 
     // lattices and weights for adaptive energy integration
     arma::vec E0[4];
@@ -45,10 +50,10 @@ public:
     inline bool steady_state();
 
     // initialize time evolution (call after steady_state)
-    inline void init_time_evolution();
+    inline void init_time_evolution(int N_t);
 
     // simulate next time step
-    inline void time_step();
+    inline bool time_step(const voltage & V);
 
 private:
     arma::cx_mat u;
@@ -57,6 +62,7 @@ private:
     arma::cx_mat qsum;
     arma::cx_mat H_eff;
     arma::cx_mat old_L;
+    arma::cx_mat cx_eye;
 
     inline void calc_q();
 };
@@ -64,7 +70,7 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 device::device(const device_params & pp, const contact_ptrs & ct)
-    : p(pp), contacts(ct) {
+    : p(pp), m(0), contacts(ct) {
 }
 
 device::device(const device_params & pp, const voltage & V)
@@ -82,11 +88,16 @@ device::device(const device_params & pp)
 
 template<bool smooth>
 bool device::steady_state() {
+    // initialize observables
+    phi.resize(1);
+    n.resize(1);
+    I.resize(1);
+
     // get the right-hand-side vector in poisson's equation
     arma::vec R0 = potential::get_R0(p, { contacts[S]->V, contacts[G]->V, contacts[D]->V });
 
     // solve poisson's equation with zero charge_density
-    phi = potential(p, R0);
+    phi[0] = potential(p, R0);
 
     // maximum deviation of phi
     double dphi;
@@ -98,15 +109,15 @@ bool device::steady_state() {
     bool converged = false;
 
     // init anderson
-    anderson mr_neo(phi.data);
+    anderson mr_neo(phi[0].data);
 
     // repeat until potential converged or maximum number of iterations has been reached
     for (it = 1; it <= max_iterations; ++it) {
         // update charge density
-        n = charge_density(p, phi, E0, W);
+        n[0] = charge_density(p, phi[0], E0, W);
 
         // update potential
-        dphi = phi.update(p, R0, n, mr_neo);
+        dphi = phi[0].update(p, R0, n[0], mr_neo);
 
         // check for convergence (i.e. deviation is smaller than threshold value)
         converged = dphi < dphi_threshold;
@@ -116,28 +127,33 @@ bool device::steady_state() {
 
         // straighten out the potential in the contact regions to improve convergence (can be turned off)
         if (smooth && (it < 3)) {
-            phi.smooth(p);
+            phi[0].smooth(p);
         }
     }
 
     // get current
-    I = current(p, phi);
+    I[0] = current(p, phi[0]);
 
     std::cout << "(" << p.name << ") steady_state: " <<  it << " iterations, reldev=" << dphi/dphi_threshold;
-    std::cout << ", " << (converged ? "converged!" : "DIVERGED!!!");
+    std::cout << ", " << (converged ? "" : "DIVERGED!!!");
     std::cout << ", n_E = " << E0[0].size() + E0[1].size() + E0[2].size() + E0[3].size() << std::endl;
 
     return converged;
 }
 
-void device::init_time_evolution() {
+void device::init_time_evolution(int N_t) {
     using namespace arma;
 
+    // resize observables
+    phi.resize(N_t);
+    n.resize(N_t);
+    I.resize(N_t);
+
     // initialize waves
-    psi[LV] = wave_packet(p, S, mem, E0[LV], W[LV], phi);
-    psi[RV] = wave_packet(p, D, mem, E0[RV], W[RV], phi);
-    psi[LC] = wave_packet(p, S, mem, E0[LC], W[LC], phi);
-    psi[RC] = wave_packet(p, D, mem, E0[RC], W[RC], phi);
+    psi[LV] = wave_packet(p, S, mem, E0[LV], W[LV], phi[0]);
+    psi[RV] = wave_packet(p, D, mem, E0[RV], W[RV], phi[0]);
+    psi[LC] = wave_packet(p, S, mem, E0[LC], W[LC], phi[0]);
+    psi[RC] = wave_packet(p, D, mem, E0[RC], W[RC], phi[0]);
 
     // precalculate q values
     calc_q();
@@ -148,12 +164,127 @@ void device::init_time_evolution() {
     H_eff.diag(+1) = conv_to<cx_vec>::from(p.t_vec);
     H_eff.diag(-1) = conv_to<cx_vec>::from(p.t_vec);
 
+    // setup u
+    u.resize(N_t, 2);
+
     // setup L
+    L.resize(N_t, 2);
     L.fill(1.0);
+
+    // complex unity matrix
+    cx_eye = eye<cx_mat>(2 * p.N_x, 2 * p.N_x);
 }
 
-void device::time_step() {
+bool device::time_step(const voltage & V) {
+    using namespace arma;
+    using namespace std::complex_literals;
 
+    // shortcut
+    static constexpr double g = c::g;
+
+    // next time step
+    ++m;
+
+    // estimate charge density from previous values
+    n[m].total = (m == 1) ? n[0].total : (2 * n[m - 1].total - n[m - 2].total);
+
+    // prepare right side of poisson equation
+    vec R0 = potential::get_R0(p, V);
+
+    // first guess for potential
+    phi[m] = potential(p, R0, n[m]);
+
+    // maximum deviation of phi
+    double dphi;
+
+    // iteration counter
+    int it;
+
+    // was self-consistency achieved in max_iterations steps?
+    bool converged = false;
+
+    // init anderson
+    anderson mr_neo(phi[m].data);
+
+    // current data becomes old data
+    for (int i = 0; i < 4; ++i) {
+        psi[i].remember();
+    }
+    old_L = L;
+
+    // self-consistency loop
+    for (it = 0; it < max_iterations; ++it) {
+        // diagonal of H with self-energy
+        H_eff.diag() = conv_to<cx_vec>::from(0.5 * (phi[m].twice + phi[m - 1].twice));
+        H_eff(            0,             0) -= 1i * g * q(0, S);
+        H_eff(2 * p.N_x - 1, 2 * p.N_x - 1) -= 1i * g * q(0, D);
+
+        // crank-nicolson propagator
+        cx_mat U_eff = solve(cx_eye + 1i * g * H_eff, cx_eye - 1i * g * H_eff);
+
+        // inv
+        cx_mat inv(2 * p.N_x, 2);
+        inv.col(S) = inverse_col< true>(cx_vec(1i * g * p.t_vec), cx_vec(1.0 + 1i * g * H_eff.diag()));
+        inv.col(D) = inverse_col<false>(cx_vec(1i * g * p.t_vec), cx_vec(1.0 + 1i * g * H_eff.diag()));
+
+        // u
+        u(m - 1, S) = 0.5 * (phi[m].s() + phi[m - 1].s()) - phi[0].s();
+        u(m - 1, D) = 0.5 * (phi[m].d() + phi[m - 1].d()) - phi[0].d();
+        u.row(m - 1) = (1.0 - 0.5i * g * u.row(m - 1)) / (1.0 + 0.5i * g * u.row(m - 1));
+
+        // L
+        L.rows(0, m - 1) = old_L.rows(0, m - 1) * diagmat(u.row(m - 1) % u.row(m - 1));
+
+        if (m == 1) {
+            for (int i = 0; i < 4; ++i) {
+                psi[i].memory_init();
+                psi[i].source_init(p, u, q);
+                psi[i].propagate(U_eff, inv);
+                psi[i].update_E(p, phi[m], phi[0]);
+            }
+        } else {
+            cx_mat affe;
+            if (m <= mem + 1) {
+                affe = - g * g * L.rows(0, m - 2) % qsum.rows(mem + 1 - m, mem - 1) / u.rows(0, m - 2) * diagmat(1.0 / u.row(m - 1));
+            } else {
+                affe = - g * g * L.rows(m - mem - 1, m - 2) % qsum.rows(0, mem - 1) / u.rows(m - mem - 1, m - 2) * diagmat(1.0 / u.row(m - 1));
+            }
+
+            // propagate wave functions
+            for (int i = 0; i < 4; ++i) {
+                psi[i].memory_update(affe, m);
+                psi[i].source_update(u, L, qsum, m);
+                psi[i].propagate(U_eff, inv);
+                psi[i].update_E(p, phi[m], phi[0]);
+            }
+        }
+
+        // update n
+        n[m] = charge_density(p, phi[m], psi);
+
+        // update potential
+        dphi = phi[m].update(p, R0, n[m], mr_neo);
+
+        // check for convergence (i.e. deviation is smaller than threshold value)
+        converged = dphi < dphi_threshold;
+        if (converged) {
+            break;
+        }
+    }
+
+    // update psi_sum
+    for (int i = 0; i < 4; ++i) {
+        psi[i].update_sum(m);
+    }
+
+    // get current
+    I[m] = current(p, phi[m], psi);
+
+    std::cout << "(" << p.name << ") timestep " << m << ": t=" << std::setprecision(5) << std::fixed << m * c::dt * 1e12
+              << "ps, " << it + 1 << " iterations, reldev=" << dphi / dphi_threshold
+              << ", " << (converged ? "" : "DIVERGED!!!") << std::endl;
+
+    return converged;
 }
 
 void device::calc_q() {
@@ -225,8 +356,8 @@ void device::calc_q() {
 
     // calculate and save q values
     q.resize(mem + 1, 2);
-    q.col(S) = get_q(phi.s()).rows(3, mem + 3);
-    q.col(D) = get_q(phi.d()).rows(3, mem + 3);
+    q.col(S) = get_q(phi[0].s()).rows(3, mem + 3);
+    q.col(D) = get_q(phi[0].d()).rows(3, mem + 3);
 
     // sum of two following q-values reversed
     qsum.resize(mem, 2);

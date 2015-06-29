@@ -95,12 +95,12 @@ static inline void plot_ldos(const device_params & p, const potential & phi, con
 
     arma::vec vband = phi.data;
     vband(p.sc)  -= 0.5 * p.E_gc;
-    vband({p.sox.a, p.dox.b}) -= 0.5 * p.E_g;
+    vband.rows(p.sox.a, p.dox.b) -= 0.5 * p.E_g;
     vband(p.dc)  -= 0.5 * p.E_gc;
 
     arma::vec cband = phi.data;
     cband(p.sc)  += 0.5 * p.E_gc;
-    cband({p.sox.a, p.dox.b}) += 0.5 * p.E_g;
+    cband.rows(p.sox.a, p.dox.b) += 0.5 * p.E_g;
     cband(p.dc)  += 0.5 * p.E_gc;
 
     gp.add(p.x, vband);

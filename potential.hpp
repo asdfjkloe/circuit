@@ -55,7 +55,7 @@ potential::potential() {
 potential::potential(const device_params & p, const arma::vec & R) {
     using namespace arma;
     vec phi2D = spsolve(get_S(p), R);
-    data = phi2D({uword((p.M_cnt - 1) * p.N_x), uword(p.M_cnt * p.N_x - 1)});
+    data = phi2D.rows((p.M_cnt - 1) * p.N_x, p.M_cnt * p.N_x - 1);
 
     update_twice();
 }
@@ -122,7 +122,7 @@ arma::vec potential::get_R0(const device_params & p, const voltage & V0) {
     const std::array<arma::mat, 4> & eps = get_eps(p);
 
     // add built-in voltages
-    std::array<double, 3> V = - (V0 + p.F);
+    voltage V = - (V0 + p.F);
 
     // init return vector
     vec R0(p.N_x * p.M_r);
@@ -202,7 +202,7 @@ void potential::smooth(unsigned x0, unsigned x1) {
             }
             for (unsigned j = i + 1; j < x1; ++j) {
                 if (data(j) >= data(i)) {
-                    data({i+1, j-1}).fill(data(i));
+                    data.rows(i+1, j-1).fill(data(i));
                     break;
                 }
             }
@@ -213,7 +213,7 @@ void potential::smooth(unsigned x0, unsigned x1) {
             }
             for (unsigned j = i - 1; j >= 1; --j) {
                 if (data(j) >= data(i)) {
-                    data({j+1, i-1}).fill(data(i));
+                    data.rows(j+1, i-1).fill(data(i));
                     break;
                 }
             }
@@ -225,7 +225,7 @@ void potential::smooth(unsigned x0, unsigned x1) {
             }
             for (unsigned j = i + 1; j < x1; ++j) {
                 if (data(j) <= data(i)) {
-                    data({i+1, j-1}).fill(data(i));
+                    data.rows(i+1, j-1).fill(data(i));
                     break;
                 }
             }
@@ -236,7 +236,7 @@ void potential::smooth(unsigned x0, unsigned x1) {
             }
             for (unsigned j = i - 1; j >= 1; --j) {
                 if (data(j) <= data(i)) {
-                    data({j+1, i - 1}).fill(data(i));
+                    data.rows(j+1, i - 1).fill(data(i));
                     break;
                 }
             }
@@ -249,7 +249,7 @@ arma::vec potential::get_R(const device_params & p, const arma::vec & R0, const 
     vec R = R0;
 
     // add non-constant part to R0 due to charge_density at the boundary of the cnt
-    R({uword((p.M_cnt - 1) * p.N_x), uword(p.M_cnt * p.N_x - 1)}) += n.total * p.r_cnt * 1e9; // 10^9 because of m->nm in eps_0
+    R.rows((p.M_cnt - 1) * p.N_x, p.M_cnt * p.N_x - 1) += n.total * p.r_cnt * 1e9; // 10^9 because of m->nm in eps_0
     return R;
 }
 const arma::sp_mat & potential::get_S(const device_params & p) {

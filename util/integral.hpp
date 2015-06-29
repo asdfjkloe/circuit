@@ -73,9 +73,9 @@ auto integral(F && f, int N, const arma::vec & intervals, double tol, double tol
         // integrate each interval; schedule(dynamic) since each interval takes a different amount of time to compute
         #pragma omp for schedule(dynamic)
         for (unsigned i = 0; i < intervals.size() - 1; ++i) {
-            x_i[i] = x0({4 * i, 4 * i + 4});
+            x_i[i] = x0.rows(4 * i, 4 * i + 4);
             w_i[i] = vec(5);
-            mat y1 = y0.cols({4 * i, 4 * i + 4});
+            mat y1 = y0.cols(4 * i, 4 * i + 4);
 
             I_thread += integral_interval(f, N, x_i[i], y1, w_i[i], tol, tol_f);
             x_n += x_i[i].size();
@@ -94,13 +94,13 @@ auto integral(F && f, int N, const arma::vec & intervals, double tol, double tol
     w.resize(x_n - (intervals.size() - 2));
     unsigned i0 = 0;
     unsigned i1 = x_i[0].size();
-    x({i0, i1 - 1}) = x_i[0];
-    w({i0, i1 - 1}) = w_i[0];
+    x.rows(i0, i1 - 1) = x_i[0];
+    w.rows(i0, i1 - 1) = w_i[0];
     for (unsigned i = 1; i < intervals.size() - 1; ++i) {
         i0 = i1;
         i1 += x_i[i].size() - 1;
-        x({i0, i1 - 1}) = x_i[i]({1, x_i[i].size() - 1});
-        w({i0, i1 - 1}) = w_i[i]({1, w_i[i].size() - 1});
+        x.rows(i0, i1 - 1) = x_i[i].rows(1, x_i[i].size() - 1);
+        w.rows(i0, i1 - 1) = w_i[i].rows(1, w_i[i].size() - 1);
 
         // add overlapping weights
         w(i0 - 1) += w_i[i](0);

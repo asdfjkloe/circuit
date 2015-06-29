@@ -20,7 +20,7 @@ public:
     static constexpr double E_min = -1.2;
     static constexpr double E_max = 1.2;
     static constexpr double rel_tol = 8e-3;
-    static constexpr int initial_waypoints = 30;
+    static constexpr int initial_waypoints = 200;
 
     arma::vec lv;    // density due to left valence band
     arma::vec rv;    // density due to right valence band
