@@ -15,8 +15,8 @@
 class device {
 public:
     static constexpr double dphi_threshold = 1e-9; // convergence threshold
-    static constexpr int max_iterations = 50;      // maximum number of iterations in convergence
-    static constexpr unsigned mem = 2000;          // length of memory integral
+    static constexpr int max_iterations = 50;      // maximum number of iterations before abortion
+    static constexpr unsigned mem = 2000;          // maximum length of the memory integral
 
     // parameters
     device_params p;
@@ -29,15 +29,15 @@ public:
     std::vector<charge_density> n;
     std::vector<current> I;
 
-    // lattices and weights for adaptive energy integration
+    // lattices and weights for adaptive integration of the charge-density
     arma::vec E0[4];
     arma::vec W[4];
 
-    // pointers to contacts
+    // pointers to contact-objects
     using contact_ptrs = std::array<contact_ptr, 3>;
     contact_ptrs contacts;
 
-    // waves for time evolution
+    // wavefunctions used in time evolutions
     wave_packet psi[4];
 
     // constructors
@@ -49,13 +49,14 @@ public:
     template<bool smooth = true>
     inline bool steady_state();
 
-    // initialize time evolution (call after steady_state)
+    // initialize time evolution (only call after steady state was solved!)
     inline void init_time_evolution(int N_t);
 
-    // simulate next time step
+    // propagate wavefunctions to the next time step
     inline bool time_step(const voltage & V);
 
 private:
+    // variables used by the time-evolution algorithm
     arma::cx_mat u;
     arma::cx_mat L;
     arma::cx_mat q;
@@ -64,6 +65,7 @@ private:
     arma::cx_mat old_L;
     arma::cx_mat cx_eye;
 
+    // precalculate the (solely geometry-dependent) q-values
     inline void calc_q();
 };
 
@@ -185,7 +187,7 @@ bool device::time_step(const voltage & V) {
     // next time step
     ++m;
 
-    // estimate charge density from previous values
+    // estimate charge distribution in following step from previous values
     n[m].total = (m == 1) ? n[0].total : (2 * n[m - 1].total - n[m - 2].total);
 
     // prepare right side of poisson equation

@@ -5,8 +5,8 @@
 
 class contact {
 public:
-    double V;
-    double c;
+    double V; // voltage
+    double c; // capacitance
     inline contact(double V, double c);
 
     inline void update(double dI, double dt);

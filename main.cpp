@@ -46,7 +46,6 @@ int main() {
     cout << c[pfet_i].contacts[D]-> V << endl;
     cout << c[pfet_i].contacts[G]-> V << endl;
 
-
     return 0;
 }
 

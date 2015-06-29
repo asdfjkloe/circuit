@@ -16,16 +16,16 @@ static inline arma::cx_vec green_col(const device_params & p, const potential &,
 
 class charge_density {
 public:
-    // integration parameters
-    static constexpr double E_min = -1.2;
-    static constexpr double E_max = 1.2;
-    static constexpr double rel_tol = 8e-3;
-    static constexpr int initial_waypoints = 200;
+    // adaptive integration parameters
+    static constexpr double E_min = -1.2;         // relative to v-band edge
+    static constexpr double E_max = +1.2;         // relative to c-band edge
+    static constexpr double rel_tol = 5e-3;       // subdevide an intervall as long as the relative deviation is larger
+    static constexpr int initial_waypoints = 200; // devide into at least this number of smaller intervalls
 
-    arma::vec lv;    // density due to left valence band
-    arma::vec rv;    // density due to right valence band
-    arma::vec lc;    // density due to left conduction band
-    arma::vec rc;    // density due to right conduction band
+    arma::vec lv;    // density due to states in v-band, induced from left
+    arma::vec rv;    // density due to states in v-band, induced from right
+    arma::vec lc;    // density due to states in c-band, induced from left
+    arma::vec rc;    // density due to states in c-band, induced from right
     arma::vec total; // total density
 
     inline charge_density();
@@ -73,7 +73,10 @@ charge_density::charge_density(const device_params & p, const potential & phi, a
         // fermi distribution in source
         double f = fermi(E - phi.s(), p.F[S]);
 
-        // multiply with f or (f - 1) depending on branching point
+        // multiply with:
+        // f if counted as electron
+        // or with
+        // (f - 1) if counted as hole
         for (int i = 0; i < p.N_x; ++i) {
             A(i) *= fermi<true>(f, E - phi(i));
         }
@@ -87,7 +90,7 @@ charge_density::charge_density(const device_params & p, const potential & phi, a
         // fermi distribution in drain
         double f = fermi(E - phi.d(), p.F[D]);
 
-        // multiply with f or (f - 1) depending on branching point
+        // see above...
         for (int i = 0; i < p.N_x; ++i) {
             A(i) *= fermi<true>(f, E - phi(i));
         }
@@ -95,10 +98,10 @@ charge_density::charge_density(const device_params & p, const potential & phi, a
         return A;
     };
 
-    // scaling
+    // scale according to given device geometry
     double scale = - 0.5 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
 
-    // calculate integrals (adaptively) and output the used energy lattice and weights
+    // calculate integrals (adaptively) and save the energy lattice and weights that were used
     lv = scale * integral(I_l, p.N_x, i_lv, rel_tol, c::epsilon(), E0[LV], W[LV]);
     rv = scale * integral(I_r, p.N_x, i_rv, rel_tol, c::epsilon(), E0[RV], W[RV]);
     lc = scale * integral(I_l, p.N_x, i_lc, rel_tol, c::epsilon(), E0[LC], W[LC]);
@@ -118,7 +121,7 @@ charge_density::charge_density(const device_params & p, const potential & phi, c
 
         #pragma omp parallel
         {
-            // each thread gets its own copy
+            // each thread gets its own container to work with
             vec n_thread(n.size());
             n_thread.fill(0.0);
 
@@ -192,15 +195,16 @@ arma::vec charge_density::get_bound_states(const device_params & p, const potent
 arma::vec charge_density::get_bound_states(const device_params & p, const potential & phi, double E0, double E1) {
     using namespace arma;
 
+    // absolute minimal precision of eigenvalue-finding (in eV)
     static constexpr double tol = 1e-10;
 
     // only look at the gated region
     span range { p.sg2.a, p.dg2.b };
 
     // for building the hamiltonian only in the gated region
-    vec a = p.t_vec(range);   // off-diagonal
+    vec a  = p.t_vec(range);   // off-diagonal
     vec a2 = a % a;           // off-diagonal squared
-    vec b = phi.twice(range); // main diagonal
+    vec b  = phi.twice(range); // main diagonal
 
     // evaluate Sturm sequence to find number of eigenvalues smaller than E
     auto eval = [&] (double E) {
