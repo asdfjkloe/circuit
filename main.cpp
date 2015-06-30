@@ -18,6 +18,7 @@
 #include "inverter.hpp"
 #include "model.hpp"
 #include "potential.hpp"
+#include "ring_oscillator.hpp"
 #include "voltage.hpp"
 #include "wave_packet.hpp"
 
@@ -29,6 +30,14 @@ using namespace arma;
 using namespace std;
 
 int main() {
+    ring_oscillator<9> ro(nfet, pfet, 1e-17);
+    ro.steady_state({ 0.0, 0.5 });
+    for (int i = 0; i < 9; ++i) {
+        cout << ro.n(i).contacts[D]->V << endl;
+    }
+
+    return 0;
+
     inverter inv(nfet, pfet, 1e-16);
 
     int N = 20;

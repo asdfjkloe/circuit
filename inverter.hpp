@@ -7,6 +7,8 @@
 
 class inverter : private circuit<3> {
 public:
+    arma::vec V_out;
+
     inline inverter(const device_params & n, const device_params & p, double capacitance);
 
     inline const device & n() const;
@@ -69,9 +71,9 @@ bool inverter::steady_state(const voltage & V) {
     contacts[D]->V = V[D];
     contacts[G]->V = V[G];
 
-    double V_out;
-    bool converged = brent(delta_I, V[S], V[D], 0.0005, V_out);
-    std::cout << "V_out = " << V_out;
+    V_out.resize(1);
+    bool converged = brent(delta_I, V[S], V[D], 0.0005, V_out(0));
+    std::cout << "V_out = " << V_out(0);
     std::cout << ", " << (converged ? "" : "ERROR!!!") << std::endl;
 
     return converged;
@@ -82,10 +84,13 @@ void inverter::save() {
     n().save<plots>();
     p().save<plots>();
 
+    arma::vec t = arma::linspace(0, V_out.size() * c::dt, V_out.size());
+
     V_out.save(save_folder() + "/V_out.arma");
-    std::ofstream just_C(save_folder() + "/C.txt");
-    just_C << capacitance;
-    just_C.close();
+
+    std::ofstream capacitance_file(save_folder() + "/C.txt");
+    capacitance_file << contacts[D]->c << std::endl;
+    capacitance_file.close();
 
     if (plots) {
         // make a plot of V_out and save it as a PNG
@@ -97,7 +102,7 @@ void inverter::save() {
         gp << "set format x '%1.2f'\n";
         gp << "set format y '%1.2f'\n";
         gp << "set output '" << save_folder() << "/V_out.png'\n";
-        gp.add(std::make_pair(sg.t * 1e12, V_out));
+        gp.add(std::make_pair(t * 1e12, V_out));
         gp.plot();
     }
 }

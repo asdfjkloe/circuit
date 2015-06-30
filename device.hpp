@@ -11,6 +11,8 @@
 #include "potential.hpp"
 #include "voltage.hpp"
 #include "util/inverse.hpp"
+#include "util/system.hpp"
+#include "util/gnuplot.hpp"
 
 class device {
 public:
@@ -23,6 +25,9 @@ public:
 
     // current time step
     unsigned m;
+
+    // voltage history (not read by time_step)
+    std::vector<voltage> V;
 
     // observables
     std::vector<potential> phi;
@@ -58,10 +63,8 @@ public:
     // update contacts (current)
     inline void update_contacts();
 
-    // save the time-dependent observables
     template<bool plots = false>
     inline void save();
-
 private:
     // variables used by the time-evolution algorithm
     arma::cx_mat u;
@@ -153,6 +156,8 @@ bool device::steady_state() {
 void device::init_time_evolution(int N_t) {
     using namespace arma;
 
+    m = 0;
+
     // resize observables
     phi.resize(N_t);
     n.resize(N_t);
@@ -188,20 +193,20 @@ bool device::time_step() {
     using namespace arma;
     using namespace std::complex_literals;
 
-    // get voltage
-    voltage V = { contacts[S]->V, contacts[D]->V, contacts[G]->V };
-
     // shortcut
     static constexpr double g = c::g;
 
     // next time step
     ++m;
 
+    // get voltage and save it in history
+    V[m] = { contacts[S]->V, contacts[D]->V, contacts[G]->V };
+
     // estimate charge distribution in following step from previous values
     n[m].total = (m == 1) ? n[0].total : (2 * n[m - 1].total - n[m - 2].total);
 
     // prepare right side of poisson equation
-    vec R0 = potential::get_R0(p, V);
+    vec R0 = potential::get_R0(p, V[m]);
 
     // first guess for potential
     phi[m] = potential(p, R0, n[m]);
@@ -307,36 +312,39 @@ void device::update_contacts() {
 template<bool plots>
 void device::save() {
 
-    std::cout << "(" << d.name << ") saving time-dependent observables... ";
+    std::cout << "(" << p.name << ") saving time-dependent observables... ";
     std::flush(std::cout);
 
-    arma::mat phi_mat(d.N_x, sg.N_t);
-    arma::mat n_mat(d.N_x, sg.N_t);
-    arma::mat I_mat(d.N_x, sg.N_t);
-    arma::mat V_mat(sg.N_t, 3);
+    int N_t = m + 1;
+    arma::vec t = arma::linspace(0, N_t * c::dt, N_t);
 
-    for (unsigned i = 0; i < sg.N_t; ++i) {
+    arma::mat phi_mat(p.N_x, N_t);
+    arma::mat n_mat(p.N_x, N_t);
+    arma::mat I_mat(p.N_x, N_t);
+//    arma::mat V_mat(N_t, 3);
+
+    for (unsigned i = 0; i < N_t; ++i) {
         phi_mat.col(i) = phi[i].data;
         n_mat.col(i) = n[i].total;
         I_mat.col(i) = I[i].total;
-        V_mat(i, 0) = sg.V[i].s;
-        V_mat(i, 1) = sg.V[i].g;
-        V_mat(i, 2) = sg.V[i].d;
+//        V_mat(i, 0) = V[i].s;
+//        V_mat(i, 1) = V[i].g;
+//        V_mat(i, 2) = V[i].d;
     }
 
-    std::string subfolder(save_folder() + "/" + d.name);
+    std::string subfolder(save_folder() + "/" + p.name);
     system("mkdir -p " + subfolder);
 
     phi_mat.save(subfolder + "/phi.arma");
     n_mat.save(subfolder + "/n.arma");
     I_mat.save(subfolder + "/I.arma");
-    d.x.save(subfolder + "/xtics.arma");
-    sg.t.save(subfolder + "/ttics.arma");
-    V_mat.save(subfolder + "/V.arma");
+    p.x.save(subfolder + "/xtics.arma");
+    t.save(subfolder + "/ttics.arma");
+//    V_mat.save(subfolder + "/V.arma");
 
-    std::ofstream device_params(subfolder + "/device.ini");
-    device_params << d.to_string();
-    device_params.close();
+//    std::ofstream param_file(subfolder + "/params.ini");
+//    param_file << to_string();
+//    param_file.close();
 
     if (plots) {
         /* produce plots of purely time-dependent
@@ -349,22 +357,22 @@ void device::save() {
         // source and drain current
         gp << "set format x '%1.2f'\n";
         gp << "set format y '%1.0g'\n";
-        arma::vec I_s(sg.N_t);
-        arma::vec I_d(sg.N_t);
-        for (unsigned i = 0; i < sg.N_t; ++i) {
+        arma::vec I_s(N_t);
+        arma::vec I_d(N_t);
+        for (unsigned i = 0; i < N_t; ++i) {
             I_s(i) = I[i].s();
             I_d(i) = I[i].d();
         }
-        gp << "set title '" << d.name << " time-dependent source current'\n";
+        gp << "set title '" << p.name << " time-dependent source current'\n";
         gp << "set ylabel 'I_{s} / A'\n";
         gp << "set output '" << subfolder << "/I_s.png'\n";
-        gp.add(std::make_pair(sg.t * 1e12, I_s));
+        gp.add(std::make_pair(t * 1e12, I_s));
         gp.plot();
         gp.reset();
-        gp << "set title '" << d.name << " time-dependent drain voltage'\n";
+        gp << "set title '" << p.name << " time-dependent drain voltage'\n";
         gp << "set ylabel 'I_{d} / A'\n";
         gp << "set output '" << subfolder << "/I_d.png'\n";
-        gp.add(std::make_pair(sg.t * 1e12, I_d));
+        gp.add(std::make_pair(t * 1e12, I_d));
         gp.plot();
     }
 
@@ -451,8 +459,6 @@ void device::calc_q() {
     }
     std::cout << "done!" << std::endl;
 }
-
-
 
 #endif
 

@@ -21,22 +21,22 @@ public:
 private:
     std::array<int, N> n_i;
     std::array<int, N> p_i;
-}
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 template<int N>
-ring_oscillator<N>::ring_oscillator(const device_params & n, const device_params & p, double capacitance) {
+ring_oscillator<N>::ring_oscillator(const device_params & n_, const device_params & p_, double capacitance) {
     // create devices
     for (int i = 0; i < N; ++i) {
-        n_i[i] = add_device(n);
-        p_i[i] = add_device(p);
+        n_i[i] = add_device(n_);
+        p_i[i] = add_device(p_);
 
         // give each device a distinct name
         std::stringstream suffix;
         suffix << "_(inv " << i << ")";
-        ring_oscillator<N>::n(i).name += suffix.str();
-        ring_oscillator<N>::p(i).name += suffix.str();
+        n(i).p.name += suffix.str();
+        p(i).p.name += suffix.str();
     }
 
     // link devices
@@ -48,13 +48,13 @@ ring_oscillator<N>::ring_oscillator(const device_params & n, const device_params
     for (int i = 0; i < N; ++i) {
         // link previous output to current input
         // last output is fed back to first input
-        link(n_i[i], G, n_i[(i - 1) % N], D);
-        link(p_i[i], G, p_i[(i - 1) % N], D);
+        link(n_i[i], G, n_i[(i + N - 1) % N], D);
+        link(p_i[i], G, p_i[(i + N - 1) % N], D);
     }
 
     // set capacitance
     for (int i = 0; i < N; ++i) {
-        n_i[i].contacts[G]->c = capacitance;
+        n(i).contacts[G]->c = capacitance;
     }
 }
 
@@ -93,7 +93,7 @@ bool ring_oscillator<N>::steady_state(const std::array<double, 2> & V) {
     contacts[D]->V = V[D];
 
     // starting point
-    n(0).contacts[G]->V = 0.0;
+    n(0).contacts[G]->V = V[S];
 
     // solve each inverter seperately, don't go back to the start
     for (i = 0; i < N; ++i) {
@@ -109,8 +109,8 @@ bool ring_oscillator<N>::steady_state(const std::array<double, 2> & V) {
     return true;
 }
 
-template<bool plots>
-void ring_oscillator::save() {
+template<int N> template<bool plots>
+void ring_oscillator<N>::save() {
     for (int i = 0; i < N; ++i) {
         n(i).save<plots>();
         p(i).save<plots>();
