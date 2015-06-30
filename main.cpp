@@ -29,26 +29,10 @@ using namespace arma;
 using namespace std;
 
 int main() {
-    /*device p(pfet, {0.5, 0.5, 0.1});
-    p.steady_state();
-    plot_ldos(p.p, p.phi[0], 1000);
-    plot(p.n[0].lv);
-    plot(p.n[0].rv);
-    plot(p.n[0].lc);
-    plot(p.n[0].rc);
-    std::cout << p.I[0].lv(0) << std::endl;
-    std::cout << p.I[0].rv(0) << std::endl;
-    std::cout << p.I[0].lc(0) << std::endl;
-    std::cout << p.I[0].rc(0) << std::endl;
-    std::cout << p.I[0].total(0) << std::endl;
-    std::cout << p.phi[0].s() << std::endl;
-    std::cout << p.phi[0].d() << std::endl;
-    return 0;*/
-
     inverter inv(nfet, pfet, 1e-16);
 
-    int N = 100;
-    vec V_in = linspace(0.1, 0.4, N);
+    int N = 20;
+    vec V_in = linspace(0.0, 0.5, N);
     vec V_out(N);
 
     for (int i = 0; i < N; ++i) {

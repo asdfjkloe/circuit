@@ -29,7 +29,8 @@ HEADERS += \
     circuit.hpp \
     device_params.hpp \
     wave_packet.hpp \
-    inverter.hpp
+    inverter.hpp \
+    ring_oscillator.hpp
 
 LIBS += -lblas -lgomp -lsuperlu
 
