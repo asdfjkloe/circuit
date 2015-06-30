@@ -58,6 +58,10 @@ public:
     // update contacts (current)
     inline void update_contacts();
 
+    // save the time-dependent observables
+    template<bool plots = false>
+    inline void save();
+
 private:
     // variables used by the time-evolution algorithm
     arma::cx_mat u;
@@ -300,6 +304,73 @@ void device::update_contacts() {
     contacts[D]->update(I[m].d(), c::dt);
 }
 
+template<bool plots>
+void device::save() {
+
+    std::cout << "(" << d.name << ") saving time-dependent observables... ";
+    std::flush(std::cout);
+
+    arma::mat phi_mat(d.N_x, sg.N_t);
+    arma::mat n_mat(d.N_x, sg.N_t);
+    arma::mat I_mat(d.N_x, sg.N_t);
+    arma::mat V_mat(sg.N_t, 3);
+
+    for (unsigned i = 0; i < sg.N_t; ++i) {
+        phi_mat.col(i) = phi[i].data;
+        n_mat.col(i) = n[i].total;
+        I_mat.col(i) = I[i].total;
+        V_mat(i, 0) = sg.V[i].s;
+        V_mat(i, 1) = sg.V[i].g;
+        V_mat(i, 2) = sg.V[i].d;
+    }
+
+    std::string subfolder(save_folder() + "/" + d.name);
+    system("mkdir -p " + subfolder);
+
+    phi_mat.save(subfolder + "/phi.arma");
+    n_mat.save(subfolder + "/n.arma");
+    I_mat.save(subfolder + "/I.arma");
+    d.x.save(subfolder + "/xtics.arma");
+    sg.t.save(subfolder + "/ttics.arma");
+    V_mat.save(subfolder + "/V.arma");
+
+    std::ofstream device_params(subfolder + "/device.ini");
+    device_params << d.to_string();
+    device_params.close();
+
+    if (plots) {
+        /* produce plots of purely time-dependent
+         * observables and save them as PNGs */
+
+        gnuplot gp;
+        gp << "set terminal png\n";
+        gp << "set xlabel 't / ps'\n";
+
+        // source and drain current
+        gp << "set format x '%1.2f'\n";
+        gp << "set format y '%1.0g'\n";
+        arma::vec I_s(sg.N_t);
+        arma::vec I_d(sg.N_t);
+        for (unsigned i = 0; i < sg.N_t; ++i) {
+            I_s(i) = I[i].s();
+            I_d(i) = I[i].d();
+        }
+        gp << "set title '" << d.name << " time-dependent source current'\n";
+        gp << "set ylabel 'I_{s} / A'\n";
+        gp << "set output '" << subfolder << "/I_s.png'\n";
+        gp.add(std::make_pair(sg.t * 1e12, I_s));
+        gp.plot();
+        gp.reset();
+        gp << "set title '" << d.name << " time-dependent drain voltage'\n";
+        gp << "set ylabel 'I_{d} / A'\n";
+        gp << "set output '" << subfolder << "/I_d.png'\n";
+        gp.add(std::make_pair(sg.t * 1e12, I_d));
+        gp.plot();
+    }
+
+    std::cout << " done!\n";
+}
+
 void device::calc_q() {
     using namespace arma;
     using namespace std::complex_literals;
@@ -380,6 +451,8 @@ void device::calc_q() {
     }
     std::cout << "done!" << std::endl;
 }
+
+
 
 #endif
 

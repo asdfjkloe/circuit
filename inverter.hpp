@@ -17,6 +17,9 @@ public:
     inline bool steady_state(const voltage & V) override;
     using circuit<3>::time_step;
 
+    template<bool plots = false>
+    inline void save();
+
 private:
     int n_i;
     int p_i;
@@ -29,11 +32,11 @@ inverter::inverter(const device_params & n, const device_params & p, double capa
     p_i = add_device(p);
 
     // link devices
-    link(n_i, S, S);
-    link(n_i, G, G);
-    link(n_i, D, p_i, D);
-    link(p_i, S, D);
-    link(p_i, G, G);
+    link(n_i, S, S); // to ground
+    link(n_i, G, G); // to input
+    link(n_i, D, p_i, D); // common output terminal
+    link(p_i, S, D); // to V_dd
+    link(p_i, G, G); // to input
 
     // set capacitance
     devices[n_i].contacts[D]->c = capacitance;
@@ -72,6 +75,31 @@ bool inverter::steady_state(const voltage & V) {
     std::cout << ", " << (converged ? "" : "ERROR!!!") << std::endl;
 
     return converged;
+}
+
+template<bool plots>
+void inverter::save() {
+    n().save<plots>();
+    p().save<plots>();
+
+    V_out.save(save_folder() + "/V_out.arma");
+    std::ofstream just_C(save_folder() + "/C.txt");
+    just_C << capacitance;
+    just_C.close();
+
+    if (plots) {
+        // make a plot of V_out and save it as a PNG
+        gnuplot gp;
+        gp << "set terminal png\n";
+        gp << "set title 'Inverter output voltage'\n";
+        gp << "set xlabel 't / ps'\n";
+        gp << "set ylabel 'V_{out} / V'\n";
+        gp << "set format x '%1.2f'\n";
+        gp << "set format y '%1.2f'\n";
+        gp << "set output '" << save_folder() << "/V_out.png'\n";
+        gp.add(std::make_pair(sg.t * 1e12, V_out));
+        gp.plot();
+    }
 }
 
 #endif

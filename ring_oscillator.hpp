@@ -15,6 +15,9 @@ public:
 
     inline bool steady_state(const std::array<double, 2> & V) override;
     using circuit<2>::time_step;
+
+    template<bool plots = false>
+    inline void save();
 private:
     std::array<int, N> n_i;
     std::array<int, N> p_i;
@@ -28,15 +31,23 @@ ring_oscillator<N>::ring_oscillator(const device_params & n, const device_params
     for (int i = 0; i < N; ++i) {
         n_i[i] = add_device(n);
         p_i[i] = add_device(p);
+
+        // give each device a distinct name
+        std::stringstream suffix;
+        suffix << "_(inv " << i << ")";
+        ring_oscillator<N>::n(i).name += suffix.str();
+        ring_oscillator<N>::p(i).name += suffix.str();
     }
 
     // link devices
     for (int i = 0; i < N; ++i) {
-        link(n_i[i], S, S);
-        link(p_i[i], S, D);
-        link(n_i[i], D, p_i[i], D);
+        link(n_i[i], S, S); // to ground
+        link(p_i[i], S, D); // to V_dd
+        link(n_i[i], D, p_i[i], D); // common output port
     }
     for (int i = 0; i < N; ++i) {
+        // link previous output to current input
+        // last output is fed back to first input
         link(n_i[i], G, n_i[(i - 1) % N], D);
         link(p_i[i], G, p_i[(i - 1) % N], D);
     }
@@ -66,6 +77,8 @@ device & ring_oscillator<N>::p(int i) {
 
 template<int N>
 bool ring_oscillator<N>::steady_state(const std::array<double, 2> & V) {
+    // NOTE: there is no steady state for a ring oscillator,
+    //       but a self-consistent solution is needed as a starting point for time-evolutions!
     int i;
     auto delta_I = [&] (double V_o) {
         n(i).contacts[D]->V = V_o;
@@ -82,7 +95,7 @@ bool ring_oscillator<N>::steady_state(const std::array<double, 2> & V) {
     // starting point
     n(0).contacts[G]->V = 0.0;
 
-    // solve each inverter, don't go back to the start
+    // solve each inverter seperately, don't go back to the start
     for (i = 0; i < N; ++i) {
         double V_out;
         bool converged = brent(delta_I, V[S], V[D], 0.0005, V_out);
@@ -94,6 +107,14 @@ bool ring_oscillator<N>::steady_state(const std::array<double, 2> & V) {
     }
 
     return true;
+}
+
+template<bool plots>
+void ring_oscillator::save() {
+    for (int i = 0; i < N; ++i) {
+        n(i).save<plots>();
+        p(i).save<plots>();
+    }
 }
 
 #endif
