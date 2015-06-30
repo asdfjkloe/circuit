@@ -4,7 +4,7 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 INCLUDEPATH += .
-DEPENDPATH *= $
+DEPENDPATH += .
 
 SOURCES += main.cpp
 
@@ -30,7 +30,8 @@ HEADERS += \
     device_params.hpp \
     wave_packet.hpp \
     inverter.hpp \
-    ring_oscillator.hpp
+    ring_oscillator.hpp \
+    util/system.hpp
 
 LIBS += -lblas -lgomp -lsuperlu
 

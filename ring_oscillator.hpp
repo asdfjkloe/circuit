@@ -15,19 +15,20 @@ public:
 
     inline bool steady_state(const std::array<double, 2> & V) override;
     using circuit<2>::time_step;
+
 private:
     std::array<int, N> n_i;
     std::array<int, N> p_i;
-}
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 template<int N>
-ring_oscillator<N>::ring_oscillator(const device_params & n, const device_params & p, double capacitance) {
+ring_oscillator<N>::ring_oscillator(const device_params & n_, const device_params & p_, double capacitance) {
     // create devices
     for (int i = 0; i < N; ++i) {
-        n_i[i] = add_device(n);
-        p_i[i] = add_device(p);
+        n_i[i] = add_device(n_);
+        p_i[i] = add_device(p_);
     }
 
     // link devices
@@ -37,13 +38,13 @@ ring_oscillator<N>::ring_oscillator(const device_params & n, const device_params
         link(n_i[i], D, p_i[i], D);
     }
     for (int i = 0; i < N; ++i) {
-        link(n_i[i], G, n_i[(i - 1) % N], D);
-        link(p_i[i], G, p_i[(i - 1) % N], D);
+        link(n_i[i], G, n_i[(i + N - 1) % N], D);
+        link(p_i[i], G, p_i[(i + N - 1) % N], D);
     }
 
     // set capacitance
     for (int i = 0; i < N; ++i) {
-        n_i[i].contacts[G]->c = capacitance;
+        n(i).contacts[G]->c = capacitance;
     }
 }
 
@@ -80,7 +81,7 @@ bool ring_oscillator<N>::steady_state(const std::array<double, 2> & V) {
     contacts[D]->V = V[D];
 
     // starting point
-    n(0).contacts[G]->V = 0.0;
+    n(0).contacts[G]->V = V[S];
 
     // solve each inverter, don't go back to the start
     for (i = 0; i < N; ++i) {

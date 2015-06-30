@@ -11,6 +11,7 @@
 #include "potential.hpp"
 #include "voltage.hpp"
 #include "util/inverse.hpp"
+#include "util/system.hpp"
 
 class device {
 public:
@@ -23,6 +24,9 @@ public:
 
     // current time step
     unsigned m;
+
+    // voltage history (not read by time_step)
+    std::vector<voltage> V;
 
     // observables
     std::vector<potential> phi;
@@ -57,6 +61,9 @@ public:
 
     // update contacts (current)
     inline void update_contacts();
+
+    // save data
+    inline void save(const std::string & folder);
 
 private:
     // variables used by the time-evolution algorithm
@@ -184,20 +191,20 @@ bool device::time_step() {
     using namespace arma;
     using namespace std::complex_literals;
 
-    // get voltage
-    voltage V = { contacts[S]->V, contacts[D]->V, contacts[G]->V };
-
     // shortcut
     static constexpr double g = c::g;
 
     // next time step
     ++m;
 
+    // get voltage and save it in history
+    V[m] = { contacts[S]->V, contacts[D]->V, contacts[G]->V };
+
     // estimate charge distribution in following step from previous values
     n[m].total = (m == 1) ? n[0].total : (2 * n[m - 1].total - n[m - 2].total);
 
     // prepare right side of poisson equation
-    vec R0 = potential::get_R0(p, V);
+    vec R0 = potential::get_R0(p, V[m]);
 
     // first guess for potential
     phi[m] = potential(p, R0, n[m]);
@@ -379,6 +386,27 @@ void device::calc_q() {
         qsum(i, D) = q(mem - i, D) + q(mem - 1 - i, D);
     }
     std::cout << "done!" << std::endl;
+}
+
+void device::save(const std::string & folder) {
+    int N_t = phi.size();
+
+    arma::mat phi_mat(p.N_x, N_t);
+    arma::mat n_mat(p.N_x, N_t);
+    arma::mat I_mat(p.N_x, N_t);
+    arma::mat V_mat(N_t, 3);
+
+    for (int i = 0; i < N_t; ++i) {
+        phi_mat.col(i) = phi[i].data;
+        n_mat.col(i) = n[i].total;
+        I_mat.col(i) = I[i].total;
+        V_mat(i, S) = V[i][S];
+        V_mat(i, D) = V[i][D];
+        V_mat(i, G) = V[i][G];
+    }
+
+    std::string subfolder(folder + "/" + p.name);
+    system("mkdir -p " + subfolder);
 }
 
 #endif
