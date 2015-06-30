@@ -17,10 +17,10 @@ static inline arma::cx_vec green_col(const device_params & p, const potential &,
 class charge_density {
 public:
     // adaptive integration parameters
-    static constexpr double E_min = -1.2;         // relative to v-band edge
-    static constexpr double E_max = +1.2;         // relative to c-band edge
-    static constexpr double rel_tol = 5e-3;       // subdevide an intervall as long as the relative deviation is larger
-    static constexpr int initial_waypoints = 200; // devide into at least this number of smaller intervalls
+    static constexpr double E_min = -1.2;         // relative to potential
+    static constexpr double E_max = +1.2;         // relative to potential
+    static constexpr double rel_tol = 5e-3;       // subdivide an interval as long as the relative deviation is larger
+    static constexpr int initial_waypoints = 200; // divide into at least this number of smaller intervalls
 
     arma::vec lv;    // density due to states in v-band, induced from left
     arma::vec rv;    // density due to states in v-band, induced from right
@@ -101,7 +101,7 @@ charge_density::charge_density(const device_params & p, const potential & phi, a
     // scale according to given device geometry
     double scale = - 0.5 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
 
-    // calculate integrals (adaptively) and save the energy lattice and weights that were used
+    // calculate integrals (adaptively) and output the energy lattice and weights that were used
     lv = scale * integral(I_l, p.N_x, i_lv, rel_tol, c::epsilon(), E0[LV], W[LV]);
     rv = scale * integral(I_r, p.N_x, i_rv, rel_tol, c::epsilon(), E0[RV], W[RV]);
     lc = scale * integral(I_l, p.N_x, i_lc, rel_tol, c::epsilon(), E0[LC], W[LC]);
@@ -203,7 +203,7 @@ arma::vec charge_density::get_bound_states(const device_params & p, const potent
 
     // for building the hamiltonian only in the gated region
     vec a  = p.t_vec(range);   // off-diagonal
-    vec a2 = a % a;           // off-diagonal squared
+    vec a2 = a % a;            // off-diagonal squared
     vec b  = phi.twice(range); // main diagonal
 
     // evaluate Sturm sequence to find number of eigenvalues smaller than E
