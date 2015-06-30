@@ -82,8 +82,8 @@ device::device(const device_params & pp, const voltage & V)
     : device(pp,
              contact_ptrs {
                  std::make_shared<contact>(V[S], c::inf),
-                 std::make_shared<contact>(V[G], c::inf),
-                 std::make_shared<contact>(V[D], c::inf)
+                 std::make_shared<contact>(V[D], c::inf),
+                 std::make_shared<contact>(V[G], c::inf)
              }) {
 }
 
@@ -99,7 +99,7 @@ bool device::steady_state() {
     I.resize(1);
 
     // get the right-hand-side vector in poisson's equation
-    arma::vec R0 = potential::get_R0(p, { contacts[S]->V, contacts[G]->V, contacts[D]->V });
+    arma::vec R0 = potential::get_R0(p, { contacts[S]->V, contacts[D]->V, contacts[G]->V });
 
     // solve poisson's equation with zero charge_density
     phi[0] = potential(p, R0);

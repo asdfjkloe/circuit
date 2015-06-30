@@ -66,7 +66,8 @@ bool inverter::steady_state(const voltage & V) {
 
     double V_out;
     bool converged = brent(delta_I, V[S], V[D], 0.0005, V_out);
-    std::cout << "V_out = " << V_out << std::endl;
+    std::cout << "V_out = " << V_out;
+    std::cout << ", " << (converged ? "" : "ERROR!!!") << std::endl;
 
     return converged;
 }

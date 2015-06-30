@@ -17,8 +17,8 @@ static inline arma::cx_vec green_col(const device_params & p, const potential &,
 class charge_density {
 public:
     // adaptive integration parameters
-    static constexpr double E_min = -1.2;         // relative to potential
-    static constexpr double E_max = +1.2;         // relative to potential
+    static constexpr double E_min = -1.5;         // relative to potential
+    static constexpr double E_max = +1.5;         // relative to potential
     static constexpr double rel_tol = 5e-3;       // subdivide an interval as long as the relative deviation is larger
     static constexpr int initial_waypoints = 200; // divide into at least this number of smaller intervalls
 
@@ -85,7 +85,7 @@ charge_density::charge_density(const device_params & p, const potential & phi, a
     };
     auto I_r = [&] (double E) -> vec {
         // spectral function from drain
-        vec A = get_A<true>(p, phi, E);
+        vec A = get_A<false>(p, phi, E);
 
         // fermi distribution in drain
         double f = fermi(E - phi.d(), p.F[D]);

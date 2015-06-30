@@ -47,7 +47,6 @@ current::current(const device_params & p, const potential & phi)
     auto I_s = [&] (double E) -> double {
         double ret = transmission(E) * scale;
         double f = fermi(E - phi.s(), p.F[S]);
-        //        ret *= (E >= phi.d()) ? f : (f - 1);
         ret *= fermi<true>(f, E - phi.d());
         return ret;
     };
@@ -55,7 +54,6 @@ current::current(const device_params & p, const potential & phi)
     auto I_d = [&] (double E) -> double {
         double ret = transmission(E) * scale;
         double f = fermi(E - phi.d(), p.F[D]);
-        //        ret *= (E >= phi.d()) ? f : (f - 1);
         ret *= fermi<true>(f, E - phi.d());
         return ret;
     };
