@@ -30,7 +30,7 @@ public:
     unsigned m;
 
     // voltage history (not read by time_step)
-    std::vector<voltage> V;
+    std::vector<voltage<3>> V;
 
     // observables
     std::vector<potential> phi;
@@ -50,7 +50,7 @@ public:
 
     // constructors
     inline device(const std::string & n, const device_params & p, const contact_ptrs & ct);
-    inline device(const std::string & n, const device_params & p, const voltage & V);
+    inline device(const std::string & n, const device_params & p, const voltage<3> & V);
     inline device(const std::string & n, const device_params & p);
 
     // solve steady state
@@ -88,7 +88,7 @@ device::device(const std::string & n, const device_params & pp, const contact_pt
     : name(n), p(pp), m(0), contacts(ct) {
 }
 
-device::device(const std::string & n, const device_params & pp, const voltage & V)
+device::device(const std::string & n, const device_params & pp, const voltage<3> & V)
     : device(n, pp,
              contact_ptrs {
                  std::make_shared<contact>(V[S], c::inf),
@@ -98,7 +98,7 @@ device::device(const std::string & n, const device_params & pp, const voltage & 
 }
 
 device::device(const std::string & n, const device_params & pp)
-    : device(n, pp, voltage { 0.0, 0.0, 0.0 }) {
+    : device(n, pp, voltage<3> { 0.0, 0.0, 0.0 }) {
 }
 
 template<bool smooth>
@@ -107,9 +107,13 @@ bool device::steady_state() {
     phi.resize(1);
     n.resize(1);
     I.resize(1);
+    V.resize(1);
+
+    // save voltage
+    V[0] = { contacts[S]-> V, contacts[D]->V, contacts[G]->V };
 
     // get the right-hand-side vector in poisson's equation
-    arma::vec R0 = potential::get_R0(p, { contacts[S]->V, contacts[D]->V, contacts[G]->V });
+    arma::vec R0 = potential::get_R0(p, V[0]);
 
     // solve poisson's equation with zero charge_density
     phi[0] = potential(p, R0);

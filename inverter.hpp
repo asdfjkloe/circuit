@@ -14,7 +14,7 @@ public:
     inline const device & p() const;
     inline device & p();
 
-    inline bool steady_state(const voltage & V) override;
+    inline bool steady_state(const voltage<3> & V) override;
     using circuit<3, 1>::time_step;
 
 private:
@@ -53,7 +53,7 @@ device & inverter::p() {
     return devices[p_i];
 }
 
-bool inverter::steady_state(const voltage & V) {
+bool inverter::steady_state(const voltage<3> & V) {
     auto delta_I = [&] (double V_o) {
         outputs[0]->V = V_o;
 
@@ -68,7 +68,7 @@ bool inverter::steady_state(const voltage & V) {
     inputs[D]->V = V[D];
     inputs[G]->V = V[G];
 
-    V_out[0].resize(1);
+    V_out.resize(1);
     bool converged = brent(delta_I, V[S], V[D], 0.0005, V_out[0][0]);
     std::cout << "V_out = " << V_out[0][0];
     std::cout << ", " << (converged ? "" : "ERROR!!!") << std::endl;

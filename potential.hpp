@@ -18,7 +18,7 @@ public:
     inline potential();
     inline potential(const device_params & p, const arma::vec & R);
     inline potential(const device_params & p, const arma::vec & R0, const charge_density & n);
-    inline potential(const device_params & p, const voltage & V);
+    inline potential(const device_params & p, const voltage<3> & V);
     inline double update(const device_params & p, const arma::vec & R0, const charge_density & n, anderson & mr_neo);
 
     inline double & operator()(int index);
@@ -28,7 +28,7 @@ public:
 
     inline void smooth(const device_params & p);
 
-    static inline arma::vec get_R0(const device_params & p, const voltage & V);
+    static inline arma::vec get_R0(const device_params & p, const voltage<3> & V);
 
 private:
     enum {
@@ -62,7 +62,7 @@ potential::potential(const device_params & p, const arma::vec & R) {
 potential::potential(const device_params & p, const arma::vec & R0, const charge_density & n)
     : potential(p, get_R(p, R0, n)) {
 }
-potential::potential(const device_params & p, const voltage & V)
+potential::potential(const device_params & p, const voltage<3> & V)
     : potential(p, get_R0(p, V)) {
 }
 
@@ -111,7 +111,7 @@ void potential::smooth(const device_params & p) {
     update_twice();
 }
 
-arma::vec potential::get_R0(const device_params & p, const voltage & V0) {
+arma::vec potential::get_R0(const device_params & p, const voltage<3> & V0) {
     using namespace arma;
 
     // shortcuts
@@ -122,7 +122,7 @@ arma::vec potential::get_R0(const device_params & p, const voltage & V0) {
     const std::array<arma::mat, 4> & eps = get_eps(p);
 
     // add built-in voltages
-    voltage V = - (V0 + p.F);
+    voltage<3> V = - (V0 + p.F);
 
     // init return vector
     vec R0(p.N_x * p.M_r);

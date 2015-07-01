@@ -3,56 +3,98 @@
 
 #include <array>
 
-using voltage = std::array<double, 3>;
+using ulint = unsigned long int;
 
-static inline voltage operator+(const voltage & a, double b) {
-    return { a[0] + b, a[1] + b, a[2] + b };
+template<ulint N>
+using voltage = std::array<double, N>;
+
+template<ulint N>
+static inline voltage<N> operator+(const voltage<N> & a, double b) {
+    voltage<N> c;
+    for (int i = 0; i < N; ++i) {
+        c[i] = a[i] + b;
+    }
+    return c;
 }
-static inline voltage operator+(double a, const voltage & b) {
+template<ulint N>
+static inline voltage<N> operator+(double a, const voltage<N> & b) {
     return b + a;
 }
-static inline voltage operator+(const voltage & a, const voltage & b) {
-    return { a[0] + b[0], a[1] + b[1], a[2] + b[2] };
+template<ulint N>
+static inline voltage<N> operator+(const voltage<N> & a, const voltage<N> & b) {
+    voltage<N> c;
+    for (ulint i = 0; i < N; ++i) {
+        c[i] = a[i] + b[i];
+    }
+    return c;
 }
-static inline voltage operator-(const voltage & a) {
-    return { -a[0], -a[1], -a[2] };
+template<ulint N>
+static inline voltage<N> operator-(const voltage<N> & a) {
+    voltage<N> c;
+    for (ulint i = 0; i < N; ++i) {
+        c[i] = - a[i];
+    }
+    return c;
 }
-static inline voltage operator-(const voltage & a, double b) {
-    return { a[0] - b, a[1] - b, a[2] - b };
-}
-static inline voltage operator-(double a, const voltage & b) {
+template<ulint N>
+static inline voltage<N> operator-(const voltage<N> & a, double b) {
     return a + (-b);
 }
-static inline voltage operator-(const voltage & a, const voltage & b) {
+template<ulint N>
+static inline voltage<N> operator-(double a, const voltage<N> & b) {
     return a + (-b);
 }
-static inline voltage operator*(const voltage & a, double b) {
-    return { a[0] * b, a[1] * b, a[2] * b };
+template<ulint N>
+static inline voltage<N> operator-(const voltage<N> & a, const voltage<N> & b) {
+    return a + (-b);
 }
-static inline voltage operator*(double a, const voltage & b) {
+template<ulint N>
+static inline voltage<N> operator*(const voltage<N> & a, double b) {
+    voltage<N> c;
+    for (ulint i = 0; i < N; ++i) {
+        c[i] = a[i] * b;
+    }
+    return c;
+}
+template<ulint N>
+static inline voltage<N> operator*(double a, const voltage<N> & b) {
     return b * a;
 }
-static inline voltage operator*(const voltage & a, const voltage & b) {
-    return { a[0] * b[0], a[1] * b[1], a[2] * b[2] };
+template<ulint N>
+static inline voltage<N> operator*(const voltage<N> & a, const voltage<N> & b) {
+    voltage<N> c;
+    for (ulint i = 0; i < N; ++i) {
+        c[i] = a[i] * b[i];
+    }
+    return c;
 }
-static inline voltage operator/(const voltage & a, double b) {
+template<ulint N>
+static inline voltage<N> operator/(const voltage<N> & a, double b) {
     return a * (1.0 / b);
 }
-static inline voltage operator/(double a, const voltage & b) {
-    return { a / b[0], a / b[1], a / b[2] };
+template<ulint N>
+static inline voltage<N> operator/(double a, const voltage<N> & b) {
+    voltage<N> c;
+    for (ulint i = 0; i < N; ++i) {
+        c[i] = a / b[i];
+    }
+    return c;
 }
-static inline voltage operator/(const voltage & a, const voltage & b) {
-    return { a[0] / b[0], a[1] / b[1], a[2] / b[2] };
+template<ulint N>
+static inline voltage<N> operator/(const voltage<N> & a, const voltage<N> & b) {
+    voltage<N> c;
+    for (ulint i = 0; i < N; ++i) {
+        c[i] = a[i] / b[i];
+    }
+    return c;
 }
-template<class F>
-static inline voltage func(F && f, const voltage & a) {
-    voltage ret;
-
-    ret[0] = f(a[0]);
-    ret[1] = f(a[1]);
-    ret[2] = f(a[2]);
-
-    return ret;
+template<ulint N, class F>
+static inline voltage<N> func(F && f, const voltage<N> & a) {
+    voltage<N> c;
+    for (ulint i = 0; i < N; ++i) {
+        c[i] = f(a[i]);
+    }
+    return c;
 }
 
 #endif

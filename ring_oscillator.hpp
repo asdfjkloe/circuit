@@ -13,7 +13,7 @@ public:
     inline const device & p(int i) const;
     inline device & p(int i);
 
-    inline bool steady_state(const std::array<double, 2> & V) override;
+    inline bool steady_state(const voltage<2> & V) override;
     using circuit<2, 1>::time_step;
 
     template<bool plots = false>
@@ -78,7 +78,7 @@ device & ring_oscillator<N>::p(int i) {
 }
 
 template<int N>
-bool ring_oscillator<N>::steady_state(const std::array<double, 2> & V) {
+bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
     // NOTE: there is no steady state for a ring oscillator,
     //       but a self-consistent solution is needed as a starting point for time-evolutions!
     int i;
@@ -110,7 +110,7 @@ bool ring_oscillator<N>::steady_state(const std::array<double, 2> & V) {
     }
 
     // save output voltage
-    V_out[0].resize(1);
+    V_out.resize(1);
     V_out[0][0] = outputs[0]->V;
 
     return true;
