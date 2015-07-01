@@ -2,6 +2,8 @@
 #define CIRCUIT_HPP
 
 #include "device.hpp"
+#include "voltage.hpp"
+#include "signal.hpp"
 
 template<ulint N_in, ulint N_out>
 class circuit {
@@ -26,6 +28,8 @@ public:
 
     inline virtual bool steady_state(const voltage<N_in> & V) = 0;
     inline bool time_step(const voltage<N_in> & V);
+
+    inline void time_evolution(const signal<N_in> & s);
 
     template<bool plots>
     inline void save();
@@ -101,6 +105,14 @@ void circuit<N_in, N_out>::link_inout(int in, int out) {
 template<ulint N_in, ulint N_out>
 void circuit<N_in, N_out>::link_outin(int out, int in) {
     outputs[out] = inputs[in];
+}
+
+template<ulint N_in, ulint N_out>
+void circuit<N_in, N_out>::time_evolution(const signal<N_in> & s) {
+    steady_state(s[0]);
+    for (int i = 1; i < s.N_t; ++i) {
+        time_step(s[i]);
+    }
 }
 
 template<ulint N_in, ulint N_out>
