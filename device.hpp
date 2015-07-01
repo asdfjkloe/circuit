@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <memory>
 #include <string>
+#include <iostream>
 
 #include "constant.hpp"
 #include "contact.hpp"
@@ -17,7 +18,7 @@
 
 class device {
 public:
-    static constexpr double dphi_threshold = 1e-9; // convergence threshold
+    static constexpr double dphi_threshold = 1e-5; // convergence threshold
     static constexpr int max_iterations = 50;      // maximum number of iterations before abortion
     static constexpr unsigned mem = 2000;          // maximum length of the memory integral
 
@@ -82,6 +83,9 @@ private:
     // precalculate the (solely geometry-dependent) q-values
     inline void calc_q();
 };
+
+template<bool csv = false>
+static inline arma::mat transfer(const device_params & p, const arma::vec & V_d, double V_g0, double V_g1, int N);
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -474,36 +478,87 @@ void device::calc_q() {
 static inline std::vector<current> curve(const device_params & p, const std::vector<voltage<3>> & V) {
     // solves the steady state problem for a given set of voltages and returns the corresponding currents
 
-    I = std::vector<current>(V.size());
+    auto I = std::vector<current>(V.size());
 
-    #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < V.size(); ++i) {
-        device d("curve device", p, V);
+//    #pragma omp parallel for
+    for (unsigned i = 0; i < V.size(); ++i) {
+        device d(p.name + std::to_string(i), p, V[i]);
         d.steady_state();
-        I[i] = d.I;
-        std::cout << "thread " << omp_get_thread_num() << ": voltage point " << i <<  " done" << std::endl;
+        I[i] = d.I[0];
+        std::cout << "thread " << omp_get_thread_num() << ": voltage point " << i+1 << "/" << V.size() << " done" << std::endl;
     }
     return I;
 }
 
-template<bool csv = false>
-static inline arma::mat transfer(const device_params & p, arma::vec & V_d, double V_g0, double V_g1, int N) {
+//static inline arma::mat transfer(const device_params & p, double V_d, double V_g0, double V_g1, int N) {
+//    // first column is V_g, second column I(V_g, V_d)
+
+//    V_g = arma::linspace(V_g0, V_g1, N);
+//    ret = arma::mat(N, 2);
+//    std::copy(V_g.begin(), V_g.end(), I.colptr(0));
+
+//    // prepare a vector of voltage points
+//    std::vector<voltage<3>> voltage_points(N);
+//    for (int j = 0; j < V_g.size(); ++j) {
+//        voltage_points[i] = ({ 0, V_g(j), V_d });
+//    }
+
+//    // solve
+//    std::vector<current> I = curve(p, voltage_points);
+
+//    // fill return vector
+//    for (int j = 0; j < V_g.size(); ++j) {
+//        ret(j, 1) = I[j].total;
+//    }
+
+//    return ret;
+//}
+
+
+// ToDo: Overload??
+template<bool csv>
+static arma::mat transfer(const device_params & p, const arma::vec & V_d, double V_g0, double V_g1, int N) {
     // first column is V_g, second column I(V_g, V_d(1)), third column I(V_g, V_d(2)) etc
 
-    V_g = arma::linspace(V_g0, V_g1, N);
-    ret = arma::mat(N, V_d.size() + 1);
-    std::copy(V_g.begin(), V_g.end(), I.colptr(0));
+    auto V_g = arma::linspace(V_g0, V_g1, N);
+    arma::mat ret(N, V_d.size() + 1);
+    std::copy(V_g.begin(), V_g.end(), ret.colptr(0));
 
-    std::vector<voltage<3>> voltage_points();
-    for (int i = 0; i < V_d.size(); ++i) {
-        for (int j = 0; j < V_g.size(); ++j) {
-            voltage_points.push_back({ 0,  });
+    // prepare a vector of voltage points
+    std::vector<voltage<3>> voltage_points(V_d.size() * N);
+    for (unsigned i = 0; i < V_d.size(); ++i) {
+        for (int j = 0; j < N; ++j) {
+            voltage_points[i*N + j] = { 0, V_g(j), V_d(i) };
         }
     }
 
+    // solve
+    std::vector<current> I = curve(p, voltage_points);
 
+    // fill return vector
+    for (unsigned i = 0; i < V_d.size(); ++i) {
+        for (int j = 0; j < N; ++j) {
+            ret(j, i+1) = I[i*N + j].total(0);
+        }
+    }
 
+    if (csv) {
+        std::ofstream of(save_folder() + "/" + p.name + "_transfer.csv");
+        for (int j = 0; j < N; ++j) {
+            for (unsigned i = 0; i < ret.n_cols; ++i) {
+                of << ret(j, i) << "\t";
+            }
+            of << std::endl;
+        }
+        of.close();
+    }
+
+    return ret;
 }
+
+
+
+
 
 #endif
 
