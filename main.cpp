@@ -44,11 +44,13 @@ static inline void setup() {
 int main() {
     setup();
 
-//    arma::vec V_d = {0.2, 0.3, 0.4, 0.5};
-//    transfer<true>(ntfet, V_d, 0, 0.4, 300);
+    cout << "saving results in " << save_folder(true, "tfet_transfer") << endl;
 
-    ring_oscillator<3> ro(nfet, pfet, 1e-19);
-    ro.time_evolution(signal<2>(5e-11, voltage<2>{0.0, 0.5}));
+    arma::vec V_d = {0.2, 0.3, 0.4, 0.5};
+    transfer<true>(ntfet, V_d, 0, 0.4, 300);
+
+//    ring_oscillator<3> ro(nfet, pfet, 1e-19);
+//    ro.time_evolution(signal<2>(5e-11, voltage<2>{0.0, 0.5}));
 
     return 0;
 }
