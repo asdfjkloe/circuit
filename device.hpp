@@ -3,6 +3,7 @@
 
 #include <iomanip>
 #include <memory>
+#include <string>
 
 #include "constant.hpp"
 #include "contact.hpp"
@@ -468,6 +469,40 @@ void device::calc_q() {
         qsum(i, D) = q(mem - i, D) + q(mem - 1 - i, D);
     }
     std::cout << "done!" << std::endl;
+}
+
+static inline std::vector<current> curve(const device_params & p, const std::vector<voltage<3>> & V) {
+    // solves the steady state problem for a given set of voltages and returns the corresponding currents
+
+    I = std::vector<current>(V.size());
+
+    #pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < V.size(); ++i) {
+        device d("curve device", p, V);
+        d.steady_state();
+        I[i] = d.I;
+        std::cout << "thread " << omp_get_thread_num() << ": voltage point " << i <<  " done" << std::endl;
+    }
+    return I;
+}
+
+template<bool csv = false>
+static inline arma::mat transfer(const device_params & p, arma::vec & V_d, double V_g0, double V_g1, int N) {
+    // first column is V_g, second column I(V_g, V_d(1)), third column I(V_g, V_d(2)) etc
+
+    V_g = arma::linspace(V_g0, V_g1, N);
+    ret = arma::mat(N, V_d.size() + 1);
+    std::copy(V_g.begin(), V_g.end(), I.colptr(0));
+
+    std::vector<voltage<3>> voltage_points();
+    for (int i = 0; i < V_d.size(); ++i) {
+        for (int j = 0; j < V_g.size(); ++j) {
+            voltage_points.push_back({ 0,  });
+        }
+    }
+
+
+
 }
 
 #endif

@@ -3,6 +3,8 @@
 
 #include <armadillo>
 #include <iostream>
+#include <omp.h>
+#include <xmmintrin.h>
 
 #define CHARGE_DENSITY_HPP_BODY
 
@@ -29,7 +31,19 @@
 using namespace arma;
 using namespace std;
 
+static inline void setup_env() {
+    // disable nested parallelism globally
+    omp_set_nested(0);
+
+    //flush denormal floats to zero for massive speedup
+    //(i.e. set bits 15 and 6 in SSE control register MXCSR)
+    _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
+    _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+}
+
 int main() {
+    setup_env();
+
     ring_oscillator<9> ro(nfet, pfet, 1e-17);
     ro.steady_state({ 0.0, 0.5 });
     for (int i = 0; i < 9; ++i) {
