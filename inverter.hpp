@@ -5,10 +5,8 @@
 #include "voltage.hpp"
 #include "util/brent.hpp"
 
-class inverter : private circuit<3> {
+class inverter : private circuit<3, 1> {
 public:
-    arma::vec V_out;
-
     inline inverter(const device_params & n, const device_params & p, double capacitance);
 
     inline const device & n() const;
@@ -17,10 +15,7 @@ public:
     inline device & p();
 
     inline bool steady_state(const voltage & V) override;
-    using circuit<3>::time_step;
-
-    template<bool plots = false>
-    inline void save();
+    using circuit<3, 1>::time_step;
 
 private:
     int n_i;
@@ -30,18 +25,19 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 inverter::inverter(const device_params & n, const device_params & p, double capacitance) {
-    n_i = add_device(n);
-    p_i = add_device(p);
+    n_i = add_device(n.name, n);
+    p_i = add_device(p.name, p);
 
     // link devices
-    link(n_i, S, S); // to ground
-    link(n_i, G, G); // to input
-    link(n_i, D, p_i, D); // common output terminal
-    link(p_i, S, D); // to V_dd
-    link(p_i, G, G); // to input
+    link_input(n_i, S, S);  // to ground
+    link_input(n_i, G, G);  // to V_in
+    link_output(n_i, D, 0); // to V_out
+    link_input(p_i, S, D);  // to V_dd
+    link_input(p_i, G, G);  // to V_in
+    link_output(p_i, D, 0); // to V_out
 
     // set capacitance
-    devices[n_i].contacts[D]->c = capacitance;
+    outputs[0]->c = capacitance;
 }
 
 const device & inverter::n() const {
@@ -59,7 +55,7 @@ device & inverter::p() {
 
 bool inverter::steady_state(const voltage & V) {
     auto delta_I = [&] (double V_o) {
-        n().contacts[D]->V = V_o;
+        outputs[0]->V = V_o;
 
         n().steady_state();
         p().steady_state();
@@ -67,44 +63,17 @@ bool inverter::steady_state(const voltage & V) {
         return n().I[0].d() + p().I[0].d();
     };
 
-    contacts[S]->V = V[S];
-    contacts[D]->V = V[D];
-    contacts[G]->V = V[G];
+    // set input voltages
+    inputs[S]->V = V[S];
+    inputs[D]->V = V[D];
+    inputs[G]->V = V[G];
 
-    V_out.resize(1);
-    bool converged = brent(delta_I, V[S], V[D], 0.0005, V_out(0));
-    std::cout << "V_out = " << V_out(0);
+    V_out[0].resize(1);
+    bool converged = brent(delta_I, V[S], V[D], 0.0005, V_out[0][0]);
+    std::cout << "V_out = " << V_out[0][0];
     std::cout << ", " << (converged ? "" : "ERROR!!!") << std::endl;
 
     return converged;
-}
-
-template<bool plots>
-void inverter::save() {
-    n().save<plots>();
-    p().save<plots>();
-
-    arma::vec t = arma::linspace(0, V_out.size() * c::dt, V_out.size());
-
-    V_out.save(save_folder() + "/V_out.arma");
-
-    std::ofstream capacitance_file(save_folder() + "/C.txt");
-    capacitance_file << contacts[D]->c << std::endl;
-    capacitance_file.close();
-
-    if (plots) {
-        // make a plot of V_out and save it as a PNG
-        gnuplot gp;
-        gp << "set terminal png\n";
-        gp << "set title 'Inverter output voltage'\n";
-        gp << "set xlabel 't / ps'\n";
-        gp << "set ylabel 'V_{out} / V'\n";
-        gp << "set format x '%1.2f'\n";
-        gp << "set format y '%1.2f'\n";
-        gp << "set output '" << save_folder() << "/V_out.png'\n";
-        gp.add(std::make_pair(t * 1e12, V_out));
-        gp.plot();
-    }
 }
 
 #endif

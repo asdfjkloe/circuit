@@ -20,6 +20,9 @@ public:
     static constexpr int max_iterations = 50;      // maximum number of iterations before abortion
     static constexpr unsigned mem = 2000;          // maximum length of the memory integral
 
+    // name
+    std::string name;
+
     // parameters
     device_params p;
 
@@ -46,9 +49,9 @@ public:
     wave_packet psi[4];
 
     // constructors
-    inline device(const device_params & p, const contact_ptrs & ct);
-    inline device(const device_params & p, const voltage & V);
-    inline device(const device_params & p);
+    inline device(const std::string & n, const device_params & p, const contact_ptrs & ct);
+    inline device(const std::string & n, const device_params & p, const voltage & V);
+    inline device(const std::string & n, const device_params & p);
 
     // solve steady state
     template<bool smooth = true>
@@ -81,12 +84,12 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-device::device(const device_params & pp, const contact_ptrs & ct)
-    : p(pp), m(0), contacts(ct) {
+device::device(const std::string & n, const device_params & pp, const contact_ptrs & ct)
+    : name(n), p(pp), m(0), contacts(ct) {
 }
 
-device::device(const device_params & pp, const voltage & V)
-    : device(pp,
+device::device(const std::string & n, const device_params & pp, const voltage & V)
+    : device(n, pp,
              contact_ptrs {
                  std::make_shared<contact>(V[S], c::inf),
                  std::make_shared<contact>(V[D], c::inf),
@@ -94,8 +97,8 @@ device::device(const device_params & pp, const voltage & V)
              }) {
 }
 
-device::device(const device_params & pp)
-    : device(pp, voltage { 0.0, 0.0, 0.0 }) {
+device::device(const std::string & n, const device_params & pp)
+    : device(n, pp, voltage { 0.0, 0.0, 0.0 }) {
 }
 
 template<bool smooth>
@@ -146,7 +149,7 @@ bool device::steady_state() {
     // get current
     I[0] = current(p, phi[0]);
 
-    std::cout << "(" << p.name << ") steady_state: " <<  it << " iterations, reldev=" << dphi/dphi_threshold;
+    std::cout << "(" << name << ") steady_state: " <<  it << " iterations, reldev=" << dphi/dphi_threshold;
     std::cout << ", " << (converged ? "" : "DIVERGED!!!");
     std::cout << ", n_E = " << E0[0].size() + E0[1].size() + E0[2].size() + E0[3].size() << std::endl;
 
@@ -297,7 +300,7 @@ bool device::time_step() {
     // get current
     I[m] = current(p, phi[m], psi);
 
-    std::cout << "(" << p.name << ") timestep " << m << ": t=" << std::setprecision(5) << std::fixed << m * c::dt * 1e12
+    std::cout << "(" << name << ") timestep " << m << ": t=" << std::setprecision(5) << std::fixed << m * c::dt * 1e12
               << "ps, " << it + 1 << " iterations, reldev=" << dphi / dphi_threshold
               << ", " << (converged ? "" : "DIVERGED!!!") << std::endl;
 
@@ -312,7 +315,7 @@ void device::update_contacts() {
 template<bool plots>
 void device::save() {
 
-    std::cout << "(" << p.name << ") saving time-dependent observables... ";
+    std::cout << "(" << name << ") saving time-dependent observables... ";
     std::flush(std::cout);
 
     int N_t = m + 1;
@@ -321,18 +324,18 @@ void device::save() {
     arma::mat phi_mat(p.N_x, N_t);
     arma::mat n_mat(p.N_x, N_t);
     arma::mat I_mat(p.N_x, N_t);
-//    arma::mat V_mat(N_t, 3);
+    arma::mat V_mat(N_t, 3);
 
     for (unsigned i = 0; i < N_t; ++i) {
         phi_mat.col(i) = phi[i].data;
         n_mat.col(i) = n[i].total;
         I_mat.col(i) = I[i].total;
-//        V_mat(i, 0) = V[i].s;
-//        V_mat(i, 1) = V[i].g;
-//        V_mat(i, 2) = V[i].d;
+        V_mat(i, S) = V[i][S];
+        V_mat(i, D) = V[i][D];
+        V_mat(i, G) = V[i][G];
     }
 
-    std::string subfolder(save_folder() + "/" + p.name);
+    std::string subfolder(save_folder() + "/" + name);
     system("mkdir -p " + subfolder);
 
     phi_mat.save(subfolder + "/phi.arma");
@@ -340,16 +343,19 @@ void device::save() {
     I_mat.save(subfolder + "/I.arma");
     p.x.save(subfolder + "/xtics.arma");
     t.save(subfolder + "/ttics.arma");
-//    V_mat.save(subfolder + "/V.arma");
+    V_mat.save(subfolder + "/V.arma");
 
-//    std::ofstream param_file(subfolder + "/params.ini");
-//    param_file << to_string();
-//    param_file.close();
+    std::ofstream params_file(subfolder + "/params.ini");
+    params_file << p.to_string();
+    params_file.close();
 
+    std::ofstream capacitance_file(subfolder + "/capacitance.ini");
+    capacitance_file << "C_s = " << contacts[S]->c << std::endl;
+    capacitance_file << "C_d = " << contacts[D]->c << std::endl;
+    capacitance_file << "C_g = " << contacts[G]->c << std::endl;
+
+    // produce plots of purely time-dependent observables and save them as PNGs
     if (plots) {
-        /* produce plots of purely time-dependent
-         * observables and save them as PNGs */
-
         gnuplot gp;
         gp << "set terminal png\n";
         gp << "set xlabel 't / ps'\n";
@@ -363,13 +369,13 @@ void device::save() {
             I_s(i) = I[i].s();
             I_d(i) = I[i].d();
         }
-        gp << "set title '" << p.name << " time-dependent source current'\n";
+        gp << "set title '" << name << " time-dependent source current'\n";
         gp << "set ylabel 'I_{s} / A'\n";
         gp << "set output '" << subfolder << "/I_s.png'\n";
         gp.add(std::make_pair(t * 1e12, I_s));
         gp.plot();
         gp.reset();
-        gp << "set title '" << p.name << " time-dependent drain voltage'\n";
+        gp << "set title '" << name << " time-dependent drain voltage'\n";
         gp << "set ylabel 'I_{d} / A'\n";
         gp << "set output '" << subfolder << "/I_d.png'\n";
         gp.add(std::make_pair(t * 1e12, I_d));

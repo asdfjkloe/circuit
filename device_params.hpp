@@ -55,6 +55,8 @@ public:
     arma::vec t_vec; // vector with t-values
 
     inline device_params(const std::string & n, const geometry & g, const model & m);
+
+    inline std::string to_string();
 };
 
 static const device_params nfet("nfet", fet_geometry, nfet_model);
@@ -130,6 +132,22 @@ device_params::device_params(const std::string & n_, const geometry & g_, const 
         t_vec(i) = b ? tc1 : tc2;
         b = !b;
     }
+}
+
+std::string device_params::to_string() {
+    using namespace std;
+
+    stringstream ss;
+
+    ss << "name    = " << name    << endl;
+
+    ss << endl << "; model" << endl;
+    ss << model::to_string();
+
+    ss << endl << "; geometry" << endl;
+    ss << geometry::to_string();
+
+    return ss.str();
 }
 
 #endif
