@@ -118,24 +118,24 @@ void circuit<N_in, N_out>::time_evolution(const signal<N_in> & s) {
 template<ulint N_in, ulint N_out>
 bool circuit<N_in, N_out>::time_step(const voltage<N_in> & V) {
     // set input voltages
-    for (int i = 0; i < N_in; ++i) {
+    for (ulint i = 0; i < N_in; ++i) {
         inputs[i]->V = V[i];
     }
 
     // calculate time_step for each device
     bool converged = true;
-    for (int i = 0; i < devices.size(); ++i) {
+    for (ulint i = 0; i < devices.size(); ++i) {
         converged &= devices[i].time_step();
     }
 
     // update device contacts
-    for (int i = 0; i < devices.size(); ++i) {
+    for (ulint i = 0; i < devices.size(); ++i) {
         devices[i].update_contacts();
     }
 
     // save output voltages
     voltage<N_out> V_o;
-    for (int i = 0; i < N_out; ++i) {
+    for (ulint i = 0; i < N_out; ++i) {
         V_o[i] = outputs[i]->V;
     }
     V_out.push_back(V_o);
