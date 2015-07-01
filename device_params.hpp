@@ -1,6 +1,9 @@
 #ifndef DEVICE_PARAMS_HPP
 #define DEVICE_PARAMS_HPP
 
+#include <map>
+#include <set>
+
 #include "geometry.hpp"
 #include "model.hpp"
 
@@ -55,8 +58,11 @@ public:
     arma::vec t_vec; // vector with t-values
 
     inline device_params(const std::string & n, const geometry & g, const model & m);
+    inline device_params(const std::string & str);
 
     inline std::string to_string();
+
+    inline void update(const std::string & n);
 };
 
 static const device_params nfet("nfet", fet_geometry, nfet_model);
@@ -67,7 +73,144 @@ static const device_params ptfet("ptfet", tfet_geometry, ptfet_model);
 //----------------------------------------------------------------------------------------------------------------------
 
 device_params::device_params(const std::string & n_, const geometry & g_, const model & m_)
-    : geometry(g_), model(m_), name(n_) {
+    : geometry(g_), model(m_) {
+    update(n_);
+}
+device_params::device_params(const std::string & str) {
+    using namespace std;
+
+    // trim function
+    auto trim = [] (string str) -> string {
+        if (str.empty()) {
+            return str;
+        }
+
+        auto first = str.find_first_not_of(' ');
+        auto last = str.find_last_not_of(' ');
+        return str.substr(first, last - first + 1);
+    };
+
+    // lookup map
+    static const map<string, int> m = {
+        { "name"   ,  0 },
+        { "E_g"    ,  1 },
+        { "m_eff"  ,  2 },
+        { "E_gc"   ,  3 },
+        { "m_efc"  ,  4 },
+        { "F_s"    ,  5 },
+        { "F_d"    ,  7 },
+        { "F_g"    ,  6 },
+        { "eps_cnt",  8 },
+        { "eps_ox" ,  9 },
+        { "l_sc"   , 10 },
+        { "l_sox"  , 11 },
+        { "l_sg"   , 12 },
+        { "l_g"    , 13 },
+        { "l_dg"   , 14 },
+        { "l_dox"  , 15 },
+        { "l_dc"   , 16 },
+        { "r_cnt"  , 17 },
+        { "d_ox"   , 18 },
+        { "r_ext"  , 19 },
+        { "dx"     , 20 },
+        { "dr"     , 21 }
+    };
+
+    // set for data indices (check if all are in string)
+    set<int> s;
+
+    // data array
+    double d[21];
+
+    // iterate over all lines
+    istringstream stream(str);
+    string line;
+    while (getline(stream, line)) {
+        // continue if empty line or comment
+        if ((line.empty()) || (line[line.find_first_not_of(' ')] == ';')) {
+            continue;
+        }
+
+        // find delimiter
+        auto pos = line.find('=');
+        if (pos == string::npos) {
+            continue;
+        }
+
+        // split line into left and right side of = sign
+        string left = trim(line.substr(0, pos));
+        string right = trim(line.substr(pos + 1));
+
+        // look left side up
+        auto it = m.find(left);
+        if (it != m.end()) {
+            // check if name (the only non double value)
+            if (it->second == 0) {
+                name = right;
+
+                // add data index
+                s.insert(it->second);
+            } else {
+                // try to convert to double
+                std::istringstream i(right);
+                if (i >> d[it->second - 1]) {
+                    s.insert(it->second);
+                }
+            }
+        }
+    }
+
+    // check if all fields were in string
+    if (s.size() != 22) {
+        cout << "Error while loading device!!" << endl;
+        return;
+    }
+
+    // save data
+    E_g     = d[ 1 - 1];
+    m_eff   = d[ 2 - 1];
+    E_gc    = d[ 3 - 1];
+    m_efc   = d[ 4 - 1];
+    F[S]    = d[ 5 - 1];
+    F[D]    = d[ 6 - 1];
+    F[G]    = d[ 7 - 1];
+    eps_cnt = d[ 8 - 1];
+    eps_ox  = d[ 9 - 1];
+    l_sc    = d[10 - 1];
+    l_sox   = d[11 - 1];
+    l_sg    = d[12 - 1];
+    l_g     = d[13 - 1];
+    l_dg    = d[14 - 1];
+    l_dox   = d[15 - 1];
+    l_dc    = d[16 - 1];
+    r_cnt   = d[17 - 1];
+    d_ox    = d[18 - 1];
+    r_ext   = d[19 - 1];
+    dx      = d[20 - 1];
+    dr      = d[21 - 1];
+
+    update(name);
+}
+
+std::string device_params::to_string() {
+    using namespace std;
+
+    stringstream ss;
+
+    ss << "name    = " << name    << endl;
+
+    ss << endl << "; model" << endl;
+    ss << model::to_string();
+
+    ss << endl << "; geometry" << endl;
+    ss << geometry::to_string();
+
+    return ss.str();
+}
+
+void device_params::update(const std::string & n_) {
+    name = n_;
+
     // total lengths
     l = l_sc + l_sox + l_sg + l_g + l_dg + l_dox + l_dc;
     R = r_cnt + d_ox + r_ext;
@@ -132,22 +275,6 @@ device_params::device_params(const std::string & n_, const geometry & g_, const 
         t_vec(i) = b ? tc1 : tc2;
         b = !b;
     }
-}
-
-std::string device_params::to_string() {
-    using namespace std;
-
-    stringstream ss;
-
-    ss << "name    = " << name    << endl;
-
-    ss << endl << "; model" << endl;
-    ss << model::to_string();
-
-    ss << endl << "; geometry" << endl;
-    ss << geometry::to_string();
-
-    return ss.str();
 }
 
 #endif
