@@ -2,6 +2,8 @@
 #define CIRCUIT_HPP
 
 #include "device.hpp"
+#include "voltage.hpp"
+#include "signal.hpp"
 
 template<ulint N_in, ulint N_out>
 class circuit {
@@ -26,6 +28,8 @@ public:
 
     inline virtual bool steady_state(const voltage<N_in> & V) = 0;
     inline bool time_step(const voltage<N_in> & V);
+
+    inline void time_evolution(const signal<N_in> & s);
 
     template<bool plots>
     inline void save();
@@ -104,26 +108,34 @@ void circuit<N_in, N_out>::link_outin(int out, int in) {
 }
 
 template<ulint N_in, ulint N_out>
+void circuit<N_in, N_out>::time_evolution(const signal<N_in> & s) {
+    steady_state(s[0]);
+    for (int i = 1; i < s.N_t; ++i) {
+        time_step(s[i]);
+    }
+}
+
+template<ulint N_in, ulint N_out>
 bool circuit<N_in, N_out>::time_step(const voltage<N_in> & V) {
     // set input voltages
-    for (int i = 0; i < N_in; ++i) {
+    for (ulint i = 0; i < N_in; ++i) {
         inputs[i]->V = V[i];
     }
 
     // calculate time_step for each device
     bool converged = true;
-    for (int i = 0; i < devices.size(); ++i) {
+    for (ulint i = 0; i < devices.size(); ++i) {
         converged &= devices[i].time_step();
     }
 
     // update device contacts
-    for (int i = 0; i < devices.size(); ++i) {
+    for (ulint i = 0; i < devices.size(); ++i) {
         devices[i].update_contacts();
     }
 
     // save output voltages
     voltage<N_out> V_o;
-    for (int i = 0; i < N_out; ++i) {
+    for (ulint i = 0; i < N_out; ++i) {
         V_o[i] = outputs[i]->V;
     }
     V_out.push_back(V_o);

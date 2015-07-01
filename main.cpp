@@ -31,7 +31,7 @@
 using namespace arma;
 using namespace std;
 
-static inline void setup_env() {
+static inline void setup() {
     // disable nested parallelism globally
     omp_set_nested(0);
 
@@ -42,32 +42,13 @@ static inline void setup_env() {
 }
 
 int main() {
-    setup_env();
+    setup();
 
-    arma::vec V_d = {0.2, 0.3, 0.4, 0.5};
-    transfer<true>(ntfet, V_d, 0, 0.4, 300);
+//    arma::vec V_d = {0.2, 0.3, 0.4, 0.5};
+//    transfer<true>(ntfet, V_d, 0, 0.4, 300);
 
-//    cout << res << endl;
-
-//    ring_oscillator<9> ro(nfet, pfet, 1e-17);
-//    ro.steady_state({ 0.0, 0.5 });
-//    for (int i = 0; i < 9; ++i) {
-//        cout << ro.n(i).contacts[D]->V << endl;
-//    }
-
-//    return 0;
-
-//    inverter inv(nfet, pfet, 1e-16);
-
-//    int N = 20;
-//    vec V_in = linspace(0.0, 0.5, N);
-//    vec V_out(N);
-
-//    for (int i = 0; i < N; ++i) {
-//        inv.steady_state({ 0.0, 0.5, V_in(i) });
-//        V_out(i) = inv.n().contacts[D]->V;
-//    }
-//    plot(V_out);
+    ring_oscillator<3> ro(nfet, pfet, 1e-19);
+    ro.time_evolution(signal<2>(5e-11, voltage<2>{0.0, 0.5}));
 
     return 0;
 }

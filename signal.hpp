@@ -58,7 +58,7 @@ template<ulint N>
 const voltage<N> & signal<N>::operator[](int index) const {
     return V[index];
 }
-
+/*
 template<ulint N>
 signal<N> operator+(const signal<N> & s1, const signal<N> & s2) {
     signal<N> s3(s1.T + s2.T);
@@ -112,7 +112,7 @@ signal<N> linear_signal(double T, const std::vector<double> & t, const std::vect
         V1 = V[i];
         linear_signal(t1 - t0, V0, V1);
     }
-}
+}*/
 
 #endif
 

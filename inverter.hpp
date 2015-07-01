@@ -16,6 +16,7 @@ public:
 
     inline bool steady_state(const voltage<3> & V) override;
     using circuit<3, 1>::time_step;
+    using circuit<3, 1>::time_evolution;
 
 private:
     int n_i;
