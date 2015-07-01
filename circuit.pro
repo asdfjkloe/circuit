@@ -31,7 +31,8 @@ HEADERS += \
     wave_packet.hpp \
     inverter.hpp \
     ring_oscillator.hpp \
-    util/system.hpp
+    util/system.hpp \
+    signal.hpp
 
 LIBS += -lblas -lgomp -lsuperlu
 
