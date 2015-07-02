@@ -18,8 +18,8 @@
 
 class device {
 public:
-    static constexpr double dphi_threshold = 1e-12; // convergence threshold for dphi
-    static constexpr int max_iterations = 100;      // maximum number of iterations before abortion
+    static constexpr double dphi_threshold = 1e-9; // convergence threshold for dphi
+    static constexpr int max_iterations = 40;      // maximum number of iterations before abortion
     static constexpr unsigned mem = 2000;          // maximum length of the memory integral
 
     // name
@@ -490,7 +490,7 @@ static std::vector<current> curve(const device_params & p, const std::vector<vol
 
     auto I = std::vector<current>(V.size());
 
-    #pragma omp parallel for schedule(dynamic)
+    //#pragma omp parallel for schedule(dynamic)
     for (unsigned i = 0; i < V.size(); ++i) {
         device d(std::to_string(i) + "/" + std::to_string(V.size()), p, V[i]);
         d.steady_state();

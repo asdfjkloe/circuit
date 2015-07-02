@@ -57,10 +57,10 @@ potential::potential(const device_params & p, const arma::vec & R) {
 
     // superlu is apparantly not thread-safe
     vec phi2D;
-    #pragma omp critical
-    {
+    //#pragma omp critical
+    //{
         phi2D = spsolve(get_S(p), R);
-    }
+    //}
 
     data = phi2D.rows((p.M_cnt - 1) * p.N_x, p.M_cnt * p.N_x - 1);
 

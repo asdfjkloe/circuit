@@ -43,7 +43,6 @@ static inline void setup() {
 
 int main() {
     setup();
-
 //    cout << "saving results in " << save_folder(true, "nfet") << endl;
 
 //    transfer<true>(nfet, {{0.0, +0.2, 0.0}, {0.0, +0.4, 0.0}}, +0.2, 100);
@@ -65,6 +64,7 @@ int main() {
     ring_oscillator<3> ro(nfet, pfet, 1e-19);
     ro.time_evolution(signal<2>(5e-11, voltage<2>{0.0, 0.5}));
     ro.save<true>();
+
     return 0;
 }
 
