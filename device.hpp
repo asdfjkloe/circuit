@@ -490,7 +490,14 @@ static inline std::vector<current> curve(const device_params & p, const std::vec
 }
 
 template<int swiped, bool csv>
-static arma::mat curve(const device_params & p, const std::vector<voltage<3>> & V0, double V1, int N) {
+static arma::mat curve(const device_params & p, const std::vector<voltage<3>> & V0, double V1, ulint N) {
+    std::vector<voltage<3>> V(V0.size() * N);
+    for (ulint i = 0; i < V0.size(); ++i) {
+        for (ulint j = 0; j < N; ++j) {
+
+        }
+    }
+
     // first column is V_g, second column I(V_g, V_d(1)), third column I(V_g, V_d(2)) etc
 
     auto V_g = arma::linspace(V_g0, V_g1, N);
