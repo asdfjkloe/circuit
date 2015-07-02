@@ -345,7 +345,7 @@ void device::save() {
     arma::mat I_mat(p.N_x, N_t);
     arma::mat V_mat(N_t, 3);
 
-    for (unsigned i = 0; i < N_t; ++i) {
+    for (int i = 0; i < N_t; ++i) {
         phi_mat.col(i) = phi[i].data;
         n_mat.col(i) = n[i].total;
         I_mat.col(i) = I[i].total;
@@ -384,7 +384,7 @@ void device::save() {
         gp << "set format y '%1.0g'\n";
         arma::vec I_s(N_t);
         arma::vec I_d(N_t);
-        for (unsigned i = 0; i < N_t; ++i) {
+        for (int i = 0; i < N_t; ++i) {
             I_s(i) = I[i].s();
             I_d(i) = I[i].d();
         }

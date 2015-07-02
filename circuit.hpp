@@ -149,13 +149,13 @@ bool circuit<N_in, N_out>::time_step(const voltage<N_in> & V) {
 template<ulint N_in, ulint N_out>
 template<bool plots>
 void circuit<N_in, N_out>::save() {
-    for (int i = 0; i < devices.size(); ++i) {
+    for (ulint i = 0; i < devices.size(); ++i) {
         devices[i].save<plots>();
     }
 
-    for (int i = 0; i < N_out; ++i) {
+    for (ulint i = 0; i < N_out; ++i) {
         arma::vec V(V_out.size());
-        for (int j = 0; j < V_out.size(); ++j) {
+        for (ulint j = 0; j < V_out.size(); ++j) {
             V[j] = V_out[j][i];
         }
         std::stringstream ss;

@@ -16,9 +16,8 @@ public:
     inline bool steady_state(const voltage<2> & V) override;
     using circuit<2, 1>::time_step;
     using circuit<2, 1>::time_evolution;
+    using circuit<2, 1>::save;
 
-    template<bool plots = false>
-    inline void save();
 private:
     std::array<int, N> n_i;
     std::array<int, N> p_i;
