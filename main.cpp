@@ -44,10 +44,10 @@ static inline void setup() {
 int main() {
     setup();
 
-//    cout << "saving results in " << save_folder(true, "ntfet_ss_curves") << endl;
+    cout << "saving results in " << save_folder(true, "ptfet_transfer") << endl;
 
-    transfer<true>(ntfet, {{0, .1, -.2}, {0, .2, -.2}}, .2, 3);
-    output<true>(ntfet, {{0, 0, .05}, {0, 0, .1}}, .3, 3);
+    transfer<true>(ptfet, {{0, -.1, -.2}, {0, -.2, -.2}}, .2, 3);
+//    output<true>(ptfet, {{0, 0, .05}, {0, 0, .1}}, .3, 3);
 
 
     return 0;
