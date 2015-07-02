@@ -489,7 +489,7 @@ static std::vector<current> curve(const device_params & p, const std::vector<vol
 
     auto I = std::vector<current>(V.size());
 
-    #pragma omp parallel for schedule(dynamic)
+    //#pragma omp parallel for schedule(dynamic)
     for (unsigned i = 0; i < V.size(); ++i) {
         device d(std::to_string(i) + "/" + std::to_string(V.size()), p, V[i]);
         d.steady_state();

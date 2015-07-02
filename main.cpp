@@ -46,8 +46,8 @@ int main() {
 
 //    cout << "saving results in " << save_folder(true, "ntfet_ss_curves") << endl;
 
-    transfer<true>(ntfet, {{0, .1, -.2}, {0, .2, -.2}}, .2, 3);
-    output<true>(ntfet, {{0, 0, .05}, {0, 0, .1}}, .3, 3);
+    transfer<true>(ntfet, {{0, .1, -.2}, {0, .2, -.2}}, .2, 200);
+    output<true>(ntfet, {{0, 0, .05}, {0, 0, .1}}, .3, 200);
 
 
     return 0;
