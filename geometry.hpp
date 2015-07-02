@@ -29,11 +29,11 @@ static const geometry fet_geometry {
     10.0, // eps_cnt
     25.0, // eps_ox
      5.0, // l_sc
-     7.0, // l_sox
+    22.0, // l_sox
      3.0, // l_sg
-    18.0, // l_g
-     3.0, // l_dg
-     7.0, // l_dox
+    10.0, // l_g
+    25.0, // l_dg
+     0.0, // l_dox
      5.0, // l_dc
      1.0, // r_cnt
      2.0, // d_ox

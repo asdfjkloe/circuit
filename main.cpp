@@ -44,10 +44,9 @@ static inline void setup() {
 int main() {
     setup();
 
-    cout << "saving results in " << save_folder(true, "tfet_transfer") << endl;
+    cout << "saving results in " << save_folder(true, "nfet_transfer") << endl;
 
-    arma::vec V_d = {0.2};
-    transfer<true>(ntfet, V_d, -0.2, +0.2, 100);
+    transfer<true>(nfet, linspace(0.2, 0.5, 4), 0.0, 0.4, 100);
 
 //    device d1("test1", ntfet, voltage<3>{0, 0.2, 0.});
 //    d1.steady_state();

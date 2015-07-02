@@ -27,7 +27,7 @@ static const model nfet_model {
     {
         0.62 / 2 + 0.015, // F[S]
         0.62 / 2 + 0.015, // F[D]
-        0.00              // F[G]
+        0.1               // F[G]
     }
 };
 

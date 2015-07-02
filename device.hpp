@@ -482,7 +482,6 @@ static inline std::vector<current> curve(const device_params & p, const std::vec
 
     #pragma omp parallel for schedule(dynamic)
     for (unsigned i = 0; i < V.size(); ++i) {
-        std::cout << "thread " << omp_get_thread_num() << ": ";
         device d(std::to_string(i) + "/" + std::to_string(V.size()), p, V[i]);
         d.steady_state();
         I[i] = d.I[0];
@@ -490,8 +489,8 @@ static inline std::vector<current> curve(const device_params & p, const std::vec
     return I;
 }
 
-template<bool csv>
-static arma::mat transfer(const device_params & p, const arma::vec & V_d, double V_g0, double V_g1, int N) {
+template<int swiped, bool csv>
+static arma::mat curve(const device_params & p, const std::vector<voltage<3>> & V0, double V1, int N) {
     // first column is V_g, second column I(V_g, V_d(1)), third column I(V_g, V_d(2)) etc
 
     auto V_g = arma::linspace(V_g0, V_g1, N);
