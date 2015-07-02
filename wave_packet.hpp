@@ -210,6 +210,7 @@ void wave_packet::remember() {
 void wave_packet::update_sum(unsigned m) {
     int n = (m - 1) % mem;
     int end = old_data->n_rows - 1;
+
     sum.slice(S).row(n) = old_data->row(  0) + data->row(  0);
     sum.slice(D).row(n) = old_data->row(end) + data->row(end);
 }

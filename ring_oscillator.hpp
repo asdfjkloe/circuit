@@ -41,9 +41,11 @@ ring_oscillator<N>::ring_oscillator(const device_params & n_, const device_param
     }
 
     // link devices
+    for (int i = 0; i < N; ++i) {
+        link_input(n_i[i], S, S); // to ground
+        link_input(p_i[i], S, D); // to V_dd
+    }
     for (int i = 0; i < N - 1; ++i) {
-        link_input(n_i[i], S, S);   // to ground
-        link_input(p_i[i], S, D);   // to V_dd
         link(n_i[i], D, p_i[i], D); // common output port
     }
     link_output(n_i[N - 1], D, 0); // to circuit output

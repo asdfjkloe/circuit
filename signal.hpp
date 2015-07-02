@@ -42,7 +42,7 @@ signal<N>::signal() {
 }
 template<ulint N>
 signal<N>::signal(double T_)
-    :  N_t(std::round(T / c::dt)), T(N_t * c::dt), V(N_t) {
+    :  N_t(std::round(T_ / c::dt)), T(N_t * c::dt), V(N_t) {
 }
 template<ulint N>
 signal<N>::signal(double T_, const voltage<N> & V_)

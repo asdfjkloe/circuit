@@ -183,12 +183,13 @@ void device::init_time_evolution(int N_t) {
     phi.resize(N_t);
     n.resize(N_t);
     I.resize(N_t);
+    V.resize(N_t);
 
     // initialize waves
-    psi[LV] = wave_packet(p, S, mem, E0[LV], W[LV], phi[0]);
-    psi[RV] = wave_packet(p, D, mem, E0[RV], W[RV], phi[0]);
-    psi[LC] = wave_packet(p, S, mem, E0[LC], W[LC], phi[0]);
-    psi[RC] = wave_packet(p, D, mem, E0[RC], W[RC], phi[0]);
+    psi[LV] = std::move(wave_packet(p, S, mem, E0[LV], W[LV], phi[0]));
+    psi[RV] = std::move(wave_packet(p, D, mem, E0[RV], W[RV], phi[0]));
+    psi[LC] = std::move(wave_packet(p, S, mem, E0[LC], W[LC], phi[0]));
+    psi[RC] = std::move(wave_packet(p, D, mem, E0[RC], W[RC], phi[0]));
 
     // precalculate q values
     calc_q();
