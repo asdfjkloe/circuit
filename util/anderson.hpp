@@ -5,7 +5,7 @@
 
 class anderson {
 public:
-    static constexpr auto beta = 1.0;
+    static constexpr auto beta = 1;
     static constexpr auto N = 30;
 
     inline anderson();

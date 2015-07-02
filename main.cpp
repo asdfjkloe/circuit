@@ -46,8 +46,20 @@ int main() {
 
     cout << "saving results in " << save_folder(true, "tfet_transfer") << endl;
 
-    arma::vec V_d = {0.2, 0.3, 0.4, 0.5};
-    transfer<true>(ntfet, V_d, 0, 0.4, 300);
+    arma::vec V_d = {0.2};
+    transfer<true>(ntfet, V_d, -0.2, +0.2, 100);
+
+//    device d1("test1", ntfet, voltage<3>{0, 0.2, 0.});
+//    d1.steady_state();
+//    plot_ldos(d1.p, d1.phi[0]);
+
+//    device d2("test2", ntfet, voltage<3>{0, 0.2, 0.});
+//    d2.steady_state();
+//    plot_ldos(d2.p, d2.phi[0]);
+
+
+
+
 
 //    ring_oscillator<3> ro(nfet, pfet, 1e-19);
 //    ro.time_evolution(signal<2>(5e-11, voltage<2>{0.0, 0.5}));

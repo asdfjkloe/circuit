@@ -18,8 +18,8 @@
 
 class device {
 public:
-    static constexpr double dphi_threshold = 1e-5; // convergence threshold
-    static constexpr int max_iterations = 50;      // maximum number of iterations before abortion
+    static constexpr double dphi_threshold = 1e-12; // convergence threshold for dphi
+    static constexpr int max_iterations = 100;      // maximum number of iterations before abortion
     static constexpr unsigned mem = 2000;          // maximum length of the memory integral
 
     // name
@@ -158,8 +158,8 @@ bool device::steady_state() {
     // get current
     I[0] = current(p, phi[0]);
 
-    std::cout << "(" << name << ") steady_state: " <<  it << " iterations, reldev=" << dphi/dphi_threshold;
-    std::cout << ", " << (converged ? "" : "DIVERGED!!!");
+    std::cout << "(" << name << ") V={" << V[0][0] << ", " << V[0][1] << ", " << V[0][2] << "}: " << it << " iterations, reldev=" << dphi/dphi_threshold;
+    std::cout << (converged ? "" : ", DIVERGED!!!");
     std::cout << ", n_E = " << E0[0].size() + E0[1].size() + E0[2].size() + E0[3].size() << std::endl;
 
     return converged;
@@ -482,40 +482,14 @@ static inline std::vector<current> curve(const device_params & p, const std::vec
 
 //    #pragma omp parallel for
     for (unsigned i = 0; i < V.size(); ++i) {
-        device d(p.name + std::to_string(i), p, V[i]);
+        std::cout << "thread " << omp_get_thread_num() << ":";
+        device d(std::to_string(i) + "/" + std::to_string(V.size()), p, V[i]);
         d.steady_state();
         I[i] = d.I[0];
-        std::cout << "thread " << omp_get_thread_num() << ": voltage point " << i+1 << "/" << V.size() << " done" << std::endl;
     }
     return I;
 }
 
-//static inline arma::mat transfer(const device_params & p, double V_d, double V_g0, double V_g1, int N) {
-//    // first column is V_g, second column I(V_g, V_d)
-
-//    V_g = arma::linspace(V_g0, V_g1, N);
-//    ret = arma::mat(N, 2);
-//    std::copy(V_g.begin(), V_g.end(), I.colptr(0));
-
-//    // prepare a vector of voltage points
-//    std::vector<voltage<3>> voltage_points(N);
-//    for (int j = 0; j < V_g.size(); ++j) {
-//        voltage_points[i] = ({ 0, V_g(j), V_d });
-//    }
-
-//    // solve
-//    std::vector<current> I = curve(p, voltage_points);
-
-//    // fill return vector
-//    for (int j = 0; j < V_g.size(); ++j) {
-//        ret(j, 1) = I[j].total;
-//    }
-
-//    return ret;
-//}
-
-
-// ToDo: Overload??
 template<bool csv>
 static arma::mat transfer(const device_params & p, const arma::vec & V_d, double V_g0, double V_g1, int N) {
     // first column is V_g, second column I(V_g, V_d(1)), third column I(V_g, V_d(2)) etc
@@ -528,7 +502,7 @@ static arma::mat transfer(const device_params & p, const arma::vec & V_d, double
     std::vector<voltage<3>> voltage_points(V_d.size() * N);
     for (unsigned i = 0; i < V_d.size(); ++i) {
         for (int j = 0; j < N; ++j) {
-            voltage_points[i*N + j] = { 0, V_g(j), V_d(i) };
+            voltage_points[i*N + j] = { 0, V_d(i), V_g(j) };
         }
     }
 

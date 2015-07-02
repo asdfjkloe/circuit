@@ -20,7 +20,7 @@ public:
     static constexpr double E_min = -1.5;         // relative to potential
     static constexpr double E_max = +1.5;         // relative to potential
     static constexpr double rel_tol = 5e-3;       // subdivide an interval as long as the relative deviation is larger
-    static constexpr int initial_waypoints = 50; // divide into at least this number of smaller intervalls
+    static constexpr int initial_waypoints = 100; // divide into at least this number of smaller intervalls
 
     arma::vec lv;    // density due to states in v-band, induced from left
     arma::vec rv;    // density due to states in v-band, induced from right
@@ -452,7 +452,7 @@ arma::vec charge_density::get_n0(const device_params & p) {
     }
     ret(p.dc).fill(nc(1));
 
-    ret *= 2 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx; // spintel inside (?)
+    ret *= 2 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
 
     // save and return n0
     n0[p.name] = ret;
