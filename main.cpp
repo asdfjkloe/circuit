@@ -44,9 +44,12 @@ static inline void setup() {
 int main() {
     setup();
 
-    cout << "saving results in " << save_folder(true, "nfet_transfer") << endl;
+    cout << "saving results in " << save_folder(true, "ntfet_ss_curves") << endl;
 
-    transfer<true>(nfet, linspace(0.2, 0.5, 4), 0.0, 0.4, 100);
+    transfer<true>(ntfet, vector<voltage<3>>{voltage<3>{0, -.2, .1}, voltage<3>{0, -.2, .2}}, .2, 200);
+
+    output<true>(ntfet, vector<voltage<3>>{voltage<3>{0, .05, 0}, voltage<3>{0, .1, 0}}, .3, 200);
+
 
 //    device d1("test1", ntfet, voltage<3>{0, 0.2, 0.});
 //    d1.steady_state();

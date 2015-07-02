@@ -84,8 +84,17 @@ private:
     inline void calc_q();
 };
 
-template<bool csv = false>
-static inline arma::mat transfer(const device_params & p, const arma::vec & V_d, double V_g0, double V_g1, int N);
+static inline std::vector<current> curve(const device_params & p, const std::vector<voltage<3>> & V);
+
+template<int swiped>
+static inline arma::mat curve(const device_params & p, const std::vector<voltage<3>> & V0, double V1, ulint N);
+
+template<bool save = false>
+static inline arma::mat transfer(const device_params & p, const std::vector<voltage<3>> & V0, double V_g1, ulint N);
+
+template<bool save = false>
+static inline arma::mat output(const device_params & p, const std::vector<voltage<3>> & V0, double V_d1, ulint N);
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -475,7 +484,7 @@ void device::calc_q() {
     std::cout << "done!" << std::endl;
 }
 
-static inline std::vector<current> curve(const device_params & p, const std::vector<voltage<3>> & V) {
+static std::vector<current> curve(const device_params & p, const std::vector<voltage<3>> & V) {
     // solves the steady state problem for a given set of voltages and returns the corresponding currents
 
     auto I = std::vector<current>(V.size());
@@ -489,53 +498,51 @@ static inline std::vector<current> curve(const device_params & p, const std::vec
     return I;
 }
 
-template<int swiped, bool csv>
+template<int swiped>
 static arma::mat curve(const device_params & p, const std::vector<voltage<3>> & V0, double V1, ulint N) {
+
     std::vector<voltage<3>> V(V0.size() * N);
     for (ulint i = 0; i < V0.size(); ++i) {
         V[i * N] = V0[i];
         voltage<3> dV { 0.0, 0.0, 0.0 };
-        dV[swiped] = (V1 - V0[swiped]) / (N - 1);
+        dV[swiped] = (V1 - V0[i][swiped]) / (double)(N - 1);
         for (ulint j = 1; j < N; ++j) {
             V[i * N + j] = V[i * N + j - 1] + dV;
         }
     }
 
-    // first column is V_g, second column I(V_g, V_d(1)), third column I(V_g, V_d(2)) etc
-
-    auto V_g = arma::linspace(V_g0, V_g1, N);
-    arma::mat ret(N, V_d.size() + 1);
-    std::copy(V_g.begin(), V_g.end(), ret.colptr(0));
-
-    // prepare a vector of voltage points
-    std::vector<voltage<3>> voltage_points(V_d.size() * N);
-    for (unsigned i = 0; i < V_d.size(); ++i) {
-        for (int j = 0; j < N; ++j) {
-            voltage_points[i*N + j] = { 0, V_d(i), V_g(j) };
-        }
-    }
-
     // solve
-    std::vector<current> I = curve(p, voltage_points);
+    std::vector<current> I = curve(p, V);
 
-    // fill return vector
-    for (unsigned i = 0; i < V_d.size(); ++i) {
-        for (int j = 0; j < N; ++j) {
+    // fill return matrix
+    arma::mat ret(N, V0.size() + 1);
+    for (ulint j = 0; j < N; ++j) {
+        ret(j, 0) = V[j][swiped];
+        for (unsigned i = 0; i < V0.size(); ++i) {
             ret(j, i+1) = I[i*N + j].total(0);
         }
     }
 
-    if (csv) {
-        std::ofstream of(save_folder() + "/" + p.name + "_transfer.csv");
-        for (int j = 0; j < N; ++j) {
-            for (unsigned i = 0; i < ret.n_cols; ++i) {
-                of << ret(j, i) << "\t";
-            }
-            of << std::endl;
-        }
-        of.close();
-    }
+    return ret;
+}
 
+template<bool save>
+static arma::mat transfer(const device_params & p, const std::vector<voltage<3>> & V0, double V_g1, ulint N){
+    arma::mat ret = curve<G>(p, V0, V_g1, N);
+
+    if (save) {
+        ret.save(save_folder() + "/" + p.name + "_transfer.csv", arma::csv_ascii);
+    }
+    return ret;
+}
+
+template<bool save>
+static arma::mat output(const device_params & p, const std::vector<voltage<3>> & V0, double V_d1, ulint N){
+    arma::mat ret = curve<D>(p, V0, V_d1, N);
+
+    if (save) {
+        ret.save(save_folder() + "/" + p.name + "_output.csv", arma::csv_ascii);
+    }
     return ret;
 }
 
