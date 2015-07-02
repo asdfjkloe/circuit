@@ -33,9 +33,7 @@ using namespace std;
 
 static inline void setup() {
     // disable nested parallelism globally
-    omp_set_nested(1);
-
-
+    omp_set_nested(0);
 
     //flush denormal floats to zero for massive speedup
     //(i.e. set bits 15 and 6 in SSE control register MXCSR)

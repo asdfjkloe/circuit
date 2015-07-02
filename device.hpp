@@ -478,11 +478,10 @@ void device::calc_q() {
 static inline std::vector<current> curve(const device_params & p, const std::vector<voltage<3>> & V) {
     // solves the steady state problem for a given set of voltages and returns the corresponding currents
 
-
     auto I = std::vector<current>(V.size());
+
     #pragma omp parallel for schedule(dynamic)
     for (unsigned i = 0; i < V.size(); ++i) {
-
         std::cout << "thread " << omp_get_thread_num() << ": ";
         device d(std::to_string(i) + "/" + std::to_string(V.size()), p, V[i]);
         d.steady_state();

@@ -54,7 +54,14 @@ potential::potential() {
 }
 potential::potential(const device_params & p, const arma::vec & R) {
     using namespace arma;
-    vec phi2D = spsolve(get_S(p), R);
+
+    // superlu is apparantly not thread-safe
+    vec phi2D;
+    #pragma omp critical
+    {
+        phi2D = spsolve(get_S(p), R);
+    }
+
     data = phi2D.rows((p.M_cnt - 1) * p.N_x, p.M_cnt * p.N_x - 1);
 
     update_twice();
