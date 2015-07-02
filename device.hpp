@@ -493,8 +493,11 @@ template<int swiped, bool csv>
 static arma::mat curve(const device_params & p, const std::vector<voltage<3>> & V0, double V1, ulint N) {
     std::vector<voltage<3>> V(V0.size() * N);
     for (ulint i = 0; i < V0.size(); ++i) {
-        for (ulint j = 0; j < N; ++j) {
-
+        V[i * N] = V0[i];
+        voltage<3> dV { 0.0, 0.0, 0.0 };
+        dV[swiped] = (V1 - V0[swiped]) / (N - 1);
+        for (ulint j = 1; j < N; ++j) {
+            V[i * N + j] = V[i * N + j - 1] + dV;
         }
     }
 
