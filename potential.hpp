@@ -254,7 +254,7 @@ arma::vec potential::get_R(const device_params & p, const arma::vec & R0, const 
 }
 const arma::sp_mat & potential::get_S(const device_params & p) {
     // check if S was already calculated for this device
-    static std::map<std::string, arma::sp_mat> S;
+    static thread_local std::map<std::string, arma::sp_mat> S;
     auto it = S.find(p.name);
     if (it != std::end(S)) {
         return it->second;
@@ -380,7 +380,7 @@ const arma::sp_mat & potential::get_S(const device_params & p) {
 }
 const std::array<arma::mat, 4> & potential::get_eps(const device_params & p) {
     // check if eps was already calculated for this geometry
-    static std::map<std::string, std::array<arma::mat, 4>> eps;
+    static thread_local std::map<std::string, std::array<arma::mat, 4>> eps;
     auto it = eps.find(p.name);
     if (it != std::end(eps)) {
         return it->second;

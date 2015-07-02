@@ -387,7 +387,7 @@ arma::vec charge_density::get_n0(const device_params & p) {
     using namespace arma;
 
     // check if n0 has already been calculated for this device
-    static std::map<std::string, arma::vec> n0;
+    static thread_local std::map<std::string, arma::vec> n0;
     auto it = n0.find(p.name);
     if (it != std::end(n0)) {
         return it->second;

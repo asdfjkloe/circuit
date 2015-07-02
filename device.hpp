@@ -158,7 +158,7 @@ bool device::steady_state() {
     // get current
     I[0] = current(p, phi[0]);
 
-    std::cout << "(" << name << ") V={" << V[0][0] << ", " << V[0][1] << ", " << V[0][2] << "}: " << it << " iterations, reldev=" << dphi/dphi_threshold;
+    std::cout << "(" << name << "), V={" << V[0][0] << ", " << V[0][1] << ", " << V[0][2] << "}: " << it << " iterations, reldev=" << dphi/dphi_threshold;
     std::cout << (converged ? "" : ", DIVERGED!!!");
     std::cout << ", n_E = " << E0[0].size() + E0[1].size() + E0[2].size() + E0[3].size() << std::endl;
 
@@ -478,11 +478,12 @@ void device::calc_q() {
 static inline std::vector<current> curve(const device_params & p, const std::vector<voltage<3>> & V) {
     // solves the steady state problem for a given set of voltages and returns the corresponding currents
 
-    auto I = std::vector<current>(V.size());
 
-//    #pragma omp parallel for
+    auto I = std::vector<current>(V.size());
+    #pragma omp parallel for schedule(dynamic)
     for (unsigned i = 0; i < V.size(); ++i) {
-        std::cout << "thread " << omp_get_thread_num() << ":";
+
+        std::cout << "thread " << omp_get_thread_num() << ": ";
         device d(std::to_string(i) + "/" + std::to_string(V.size()), p, V[i]);
         d.steady_state();
         I[i] = d.I[0];
