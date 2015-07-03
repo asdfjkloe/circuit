@@ -26,7 +26,7 @@ public:
     inline void link_inout(int in, int out);
     inline void link_outin(int out, int in);
 
-    inline virtual bool steady_state(const voltage<N_in> & V) = 0;
+    virtual bool steady_state(const voltage<N_in> & V) = 0;
     inline bool time_step(const voltage<N_in> & V);
 
     inline void time_evolution(const signal<N_in> & s);
@@ -110,6 +110,9 @@ void circuit<N_in, N_out>::link_outin(int out, int in) {
 template<ulint N_in, ulint N_out>
 void circuit<N_in, N_out>::time_evolution(const signal<N_in> & s) {
     steady_state(s[0]);
+    for (ulint i = 0; i < devices.size(); ++i) {
+        devices[i].init_time_evolution(s.N_t);
+    }
     for (int i = 1; i < s.N_t; ++i) {
         time_step(s[i]);
     }
@@ -146,13 +149,13 @@ bool circuit<N_in, N_out>::time_step(const voltage<N_in> & V) {
 template<ulint N_in, ulint N_out>
 template<bool plots>
 void circuit<N_in, N_out>::save() {
-    for (int i = 0; i < devices.size(); ++i) {
+    for (ulint i = 0; i < devices.size(); ++i) {
         devices[i].save<plots>();
     }
 
-    for (int i = 0; i < N_out; ++i) {
+    for (ulint i = 0; i < N_out; ++i) {
         arma::vec V(V_out.size());
-        for (int j = 0; j < V_out.size(); ++j) {
+        for (ulint j = 0; j < V_out.size(); ++j) {
             V[j] = V_out[j][i];
         }
         std::stringstream ss;

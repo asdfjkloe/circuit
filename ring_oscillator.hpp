@@ -16,9 +16,8 @@ public:
     inline bool steady_state(const voltage<2> & V) override;
     using circuit<2, 1>::time_step;
     using circuit<2, 1>::time_evolution;
+    using circuit<2, 1>::save;
 
-    template<bool plots = false>
-    inline void save();
 private:
     std::array<int, N> n_i;
     std::array<int, N> p_i;
@@ -41,9 +40,11 @@ ring_oscillator<N>::ring_oscillator(const device_params & n_, const device_param
     }
 
     // link devices
+    for (int i = 0; i < N; ++i) {
+        link_input(n_i[i], S, S); // to ground
+        link_input(p_i[i], S, D); // to V_dd
+    }
     for (int i = 0; i < N - 1; ++i) {
-        link_input(n_i[i], S, S);   // to ground
-        link_input(p_i[i], S, D);   // to V_dd
         link(n_i[i], D, p_i[i], D); // common output port
     }
     link_output(n_i[N - 1], D, 0); // to circuit output

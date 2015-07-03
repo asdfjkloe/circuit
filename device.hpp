@@ -183,12 +183,13 @@ void device::init_time_evolution(int N_t) {
     phi.resize(N_t);
     n.resize(N_t);
     I.resize(N_t);
+    V.resize(N_t);
 
     // initialize waves
-    psi[LV] = wave_packet(p, S, mem, E0[LV], W[LV], phi[0]);
-    psi[RV] = wave_packet(p, D, mem, E0[RV], W[RV], phi[0]);
-    psi[LC] = wave_packet(p, S, mem, E0[LC], W[LC], phi[0]);
-    psi[RC] = wave_packet(p, D, mem, E0[RC], W[RC], phi[0]);
+    psi[LV] = std::move(wave_packet(p, S, mem, E0[LV], W[LV], phi[0]));
+    psi[RV] = std::move(wave_packet(p, D, mem, E0[RV], W[RV], phi[0]));
+    psi[LC] = std::move(wave_packet(p, S, mem, E0[LC], W[LC], phi[0]));
+    psi[RC] = std::move(wave_packet(p, D, mem, E0[RC], W[RC], phi[0]));
 
     // precalculate q values
     calc_q();
@@ -344,7 +345,7 @@ void device::save() {
     arma::mat I_mat(p.N_x, N_t);
     arma::mat V_mat(N_t, 3);
 
-    for (unsigned i = 0; i < N_t; ++i) {
+    for (int i = 0; i < N_t; ++i) {
         phi_mat.col(i) = phi[i].data;
         n_mat.col(i) = n[i].total;
         I_mat.col(i) = I[i].total;
@@ -383,7 +384,7 @@ void device::save() {
         gp << "set format y '%1.0g'\n";
         arma::vec I_s(N_t);
         arma::vec I_d(N_t);
-        for (unsigned i = 0; i < N_t; ++i) {
+        for (int i = 0; i < N_t; ++i) {
             I_s(i) = I[i].s();
             I_d(i) = I[i].d();
         }
