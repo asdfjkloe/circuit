@@ -1,4 +1,4 @@
-//#define ARMA_NO_DEBUG // no bound checks
+g//#define ARMA_NO_DEBUG // no bound checks
 //#define GNUPLOT_NOPLOTS
 
 #include <armadillo>
@@ -33,7 +33,7 @@ using namespace std;
 
 static inline void setup() {
     // disable nested parallelism globally
-    omp_set_nested(0);
+    omp_set_nested(1);
 
     //flush denormal floats to zero for massive speedup
     //(i.e. set bits 15 and 6 in SSE control register MXCSR)
@@ -46,7 +46,7 @@ int main() {
 
     cout << "saving results in " << save_folder(true, "ptfet_transfer") << endl;
 
-    transfer<true>(ptfet, {{0, -.1, -.2}, {0, -.2, -.2}}, .2, 3);
+    transfer<true>(ptfet, {{0, -.1, -.2}, {0, -.2, -.2}}, .2, 200);
 //    output<true>(ptfet, {{0, 0, .05}, {0, 0, .1}}, .3, 3);
 
 
