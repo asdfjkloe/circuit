@@ -144,6 +144,7 @@ bool circuit<N_in, N_out>::time_step(const voltage<N_in> & V) {
     voltage<N_out> V_o;
     for (ulint i = 0; i < N_out; ++i) {
         V_o[i] = outputs[i]->V;
+        std::cout << "V_o["i"] = " << V_o[i] << std::endl;
     }
     V_out.push_back(V_o);
 

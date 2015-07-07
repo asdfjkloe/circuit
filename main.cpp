@@ -44,14 +44,14 @@ static inline void setup() {
 int main() {
     setup();
 
-    cout << "saving results in " << save_folder(true, "ptfet_transfer") << endl;
+//    cout << "saving results in " << save_folder(true, "ptfet_transfer") << endl;
 
-    transfer<true>(ptfet, {{0, -.1, -.2}, {0, -.2, -.2}}, .2, 200);
+//    transfer<true>(ptfet, {{0, -.1, -.2}, {0, -.2, -.2}}, .2, 200);
 //    output<true>(ptfet, {{0, 0, .05}, {0, 0, .1}}, .3, 3);
 
-//    ring_oscillator<3> ro(nfet, pfet, 1e-19);
-//    ro.time_evolution(signal<2>(5e-11, voltage<2>{0.0, 0.5}));
-//    ro.save<true>();
+    ring_oscillator<3> ro(nfet, pfet, 1e-19);
+    ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.5}));
+    ro.save<true>();
 
     return 0;
 }
