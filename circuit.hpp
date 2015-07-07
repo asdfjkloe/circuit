@@ -110,6 +110,8 @@ void circuit<N_in, N_out>::link_outin(int out, int in) {
 template<ulint N_in, ulint N_out>
 void circuit<N_in, N_out>::time_evolution(const signal<N_in> & s) {
     steady_state(s[0]);
+
+    #pragma omp parallel for schedule(static)
     for (ulint i = 0; i < devices.size(); ++i) {
         devices[i].init_time_evolution(s.N_t);
     }
@@ -127,6 +129,8 @@ bool circuit<N_in, N_out>::time_step(const voltage<N_in> & V) {
 
     // calculate time_step for each device
     bool converged = true;
+
+    #pragma omp parallel for schedule(static)
     for (ulint i = 0; i < devices.size(); ++i) {
         converged &= devices[i].time_step();
     }

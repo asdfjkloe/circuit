@@ -32,7 +32,18 @@ HEADERS += \
     inverter.hpp \
     ring_oscillator.hpp \
     util/system.hpp \
-    signal.hpp
+    signal.hpp \
+    util/simd/avx.hpp \
+    util/simd/avx2.hpp \
+    util/simd/fma.hpp \
+    util/simd/mmx.hpp \
+    util/simd/simd.hpp \
+    util/simd/sse.hpp \
+    util/simd/sse2.hpp \
+    util/simd/sse3.hpp \
+    util/simd/sse4_1.hpp \
+    util/simd/sse4_2.hpp \
+    util/simd/ssse3.hpp
 
 LIBS += -lblas -lgomp -lsuperlu
 

@@ -5,6 +5,7 @@
 
 #include "constant.hpp"
 #include "device_params.hpp"
+#include "util/simd/simd.hpp"
 
 class wave_packet {
 public:
@@ -28,7 +29,8 @@ public:
     inline void source_init(const device_params & p, const arma::cx_mat & u, const arma::cx_mat & q);
     inline void source_update(const arma::cx_mat & u, const arma::cx_mat & L, const arma::cx_mat & qsum, unsigned m);
 
-    inline void propagate(const arma::cx_mat & U_eff, const arma::cx_mat & inv);
+//    inline void propagate(const arma::cx_mat & U_eff, const arma::cx_mat & inv);
+    inline void propagate(const arma::cx_vec & U_eff, int bw, const arma::cx_mat & inv);
 
     inline void remember();
 
@@ -64,6 +66,7 @@ wave_packet::wave_packet(const device_params & p, int src, unsigned mem_, const 
     using namespace arma;
 
     data1 = cx_mat(p.N_x * 2, E0.size());
+    data2 = cx_mat(p.N_x * 2, E0.size());
     data = &data1;
     E = mat(p.N_x, E0.size());
     in = cx_mat(E0.size(), 2);
@@ -190,10 +193,82 @@ void wave_packet::source_update(const arma::cx_mat & u, const arma::cx_mat & L, 
     source.col(D) = (old_source.col(D) % E0m * u(m - 1, D) * u(m - 2, D) + 2 * g2 * L(0, D) / u(m - 1, D) * qsd * in.col(D)) / E0p;
 }
 
-void wave_packet::propagate(const arma::cx_mat & U_eff, const arma::cx_mat & inv) {
-    *data = U_eff * (*old_data)
-          + arma::kron(source.col(S).st() + memory.col(S).st(), inv.col(S))
-          + arma::kron(source.col(D).st() + memory.col(D).st(), inv.col(D));
+//void wave_packet::propagate(const arma::cx_mat & U_eff, const arma::cx_mat & inv) {
+//    *data = U_eff * (*old_data)
+//          + arma::kron(source.col(S).st() + memory.col(S).st(), inv.col(S))
+//          + arma::kron(source.col(D).st() + memory.col(D).st(), inv.col(D));
+//}
+
+void wave_packet::propagate(const arma::cx_vec & U_eff, int bw, const arma::cx_mat & inv) {
+    using namespace arma;
+    using namespace simd;
+
+    const cx_double * U = U_eff.memptr();
+    const cx_double * A = old_data->memptr();
+    int N = data->n_rows;
+    int M = data->n_cols;
+    cx_double * B = data->memptr();
+
+    // multiply old_data by U_eff and save result in data
+    for (int i = 0; i < M; ++i) {
+        for (int j = 0; j < N; ++j) {
+            int k0 = (j < bw) ? 0 : (j - bw + 1);
+            int k1 = (j > N - bw) ? N : (j + bw);
+
+            m128d S1 = zero_m128d();
+            m128d S2 = zero_m128d();
+
+            for (int k = k0; k < j; ++k) {
+                m128d Uk = load_m128d((double *)(U + k * (bw - 1) + j));
+                m128d Ak = load_m128d((double *)(A + k));
+                m128d Al = shufpd<1, 0>(Ak, Ak);
+                m128d P1 = mulpd(Uk, Ak);
+                m128d P2 = mulpd(Uk, Al);
+                S1 = addpd(S1, P1);
+                S2 = addpd(S2, P2);
+            }
+            for (int k = j; k < k1; ++k) {
+                m128d Uk = load_m128d((double *)(U + j * (bw - 1) + k));
+                m128d Ak = load_m128d((double *)(A + k));
+                m128d Al = shufpd<1, 0>(Ak, Ak);
+                m128d P1 = mulpd(Uk, Ak);
+                m128d P2 = mulpd(Uk, Al);
+                S1 = addpd(S1, P1);
+                S2 = addpd(S2, P2);
+            }
+
+            // reduction
+            m128d R = hsubpd(S1, S1);
+            m128d I = haddpd(S2, S2);
+            m128d T = shufpd<0, 0>(R, I);
+
+            // save
+            store_m128d((double *)(B + j), T);
+        }
+        A += N;
+        B += N;
+    }
+    /*for (int i = 0; i < M; ++i) {
+        for (int j = 0; j < N; ++j) {
+            B[j] = 0.0;
+
+            int k0 = (j < bw) ? 0 : (j - bw + 1);
+            int k1 = (j > N - bw) ? N : (j + bw);
+
+            for (int k = k0; k < j; ++k) {
+                B[j] += U[k * (bw - 1) + j] * A[k];
+            }
+            for (int k = j; k < k1; ++k) {
+                B[j] += U[j * (bw - 1) + k] * A[k];
+            }
+        }
+        A += N;
+        B += N;
+    }*/
+
+    // add source and memory terms
+    *data += kron(source.col(S).st() + memory.col(S).st(), inv.col(S))
+           + kron(source.col(D).st() + memory.col(D).st(), inv.col(D));
 }
 
 void wave_packet::remember() {
