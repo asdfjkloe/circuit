@@ -33,7 +33,7 @@ using namespace std;
 
 static inline void setup() {
     // disable nested parallelism globally
-    omp_set_nested(0);
+    omp_set_nested(1);
 
     //flush denormal floats to zero for massive speedup
     //(i.e. set bits 15 and 6 in SSE control register MXCSR)
@@ -43,27 +43,15 @@ static inline void setup() {
 
 int main() {
     setup();
-//    cout << "saving results in " << save_folder(true, "nfet") << endl;
 
-//    transfer<true>(nfet, {{0.0, +0.2, 0.0}, {0.0, +0.4, 0.0}}, +0.2, 100);
-//    transfer<true>(pfet, {{0.0, -0.2, 0.0}, {0.0, -0.4, 0.0}}, -0.2, 100);
-    /*
-    transfer<true>(ntfet, vector<voltage<3>>{voltage<3>{0, -.2, .1}, voltage<3>{0, -.2, .2}}, .2, 200);
+    cout << "saving results in " << save_folder(true, "ptfet_transfer") << endl;
 
-    output<true>(ntfet, vector<voltage<3>>{voltage<3>{0, .05, 0}, voltage<3>{0, .1, 0}}, .3, 200);
-*/
+    transfer<true>(ptfet, {{0, -.1, -.2}, {0, -.2, -.2}}, .2, 200);
+//    output<true>(ptfet, {{0, 0, .05}, {0, 0, .1}}, .3, 3);
 
-//    device d1("test1", ntfet, voltage<3>{0, 0.2, 0.});
-//    d1.steady_state();
-//    plot_ldos(d1.p, d1.phi[0]);
-
-//    device d2("test2", ntfet, voltage<3>{0, 0.2, 0.});
-//    d2.steady_state();
-//    plot_ldos(d2.p, d2.phi[0]);
-
-    ring_oscillator<3> ro(nfet, pfet, 1e-19);
-    ro.time_evolution(signal<2>(5e-11, voltage<2>{0.0, 0.5}));
-    ro.save<true>();
+//    ring_oscillator<3> ro(nfet, pfet, 1e-19);
+//    ro.time_evolution(signal<2>(5e-11, voltage<2>{0.0, 0.5}));
+//    ro.save<true>();
 
     return 0;
 }
