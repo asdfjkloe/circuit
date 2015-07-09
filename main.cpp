@@ -49,9 +49,23 @@ int main() {
 //    transfer<true>(ptfet, {{0, -.1, -.2}, {0, -.2, -.2}}, .2, 200);
 //    output<true>(ptfet, {{0, 0, .05}, {0, 0, .1}}, .3, 3);
 
+//    device d("nfet", nfet, voltage<3>{0.0, 0.5, 0.3});
+//    d.steady_state();
+//    d.init_time_evolution(20);
+//    wall_clock timer;
+//    timer.tic();
+//    for (int i = 1; i < 20; ++i) {
+//        d.time_step();
+//    }
+//    cout << timer.toc() << endl;
+//    return 0;
+
     ring_oscillator<3> ro(nfet, pfet, 5e-17);
+    wall_clock timer;
+    timer.tic();
     ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.5}));
-    ro.save<true>();
+    cout << timer.toc() << endl;
+//    ro.save<true>();
 
     return 0;
 }

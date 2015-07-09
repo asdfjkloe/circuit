@@ -293,7 +293,7 @@ namespace simd {
     }
     template<int i0, int i1, int i2, int i3>
     static inline m256d vshufpd(m256d a, m256d b) {
-        return _mm256_shuffle_pd(a, b, i0 | (i1 << 1) | (i2 << 2) | (i3 << 4));
+        return _mm256_shuffle_pd(a, b, i0 | (i1 << 1) | (i2 << 2) | (i3 << 3));
     }
     template<int i>
     static inline m128 vpermilps(m128 a) {

@@ -4,7 +4,7 @@
 #include "circuit.hpp"
 
 template<int N>
-class ring_oscillator : private circuit<2, 1> {
+class ring_oscillator : private circuit<2, N> {
 public:
     inline ring_oscillator(const device_params & n, const device_params & p, double capacitance);
 
@@ -14,9 +14,9 @@ public:
     inline device & p(int i);
 
     inline bool steady_state(const voltage<2> & V) override;
-    using circuit<2, 1>::time_step;
-    using circuit<2, 1>::time_evolution;
-    using circuit<2, 1>::save;
+    using circuit<2, N>::time_step;
+    using circuit<2, N>::time_evolution;
+    using circuit<2, N>::save;
 
 private:
     std::array<int, N> n_i;
@@ -35,48 +35,41 @@ ring_oscillator<N>::ring_oscillator(const device_params & n_, const device_param
         std::string suffix = ss.str();
 
         // add devices and save indices
-        n_i[i] = add_device(n_.name + suffix, n_);
-        p_i[i] = add_device(p_.name + suffix, p_);
+        n_i[i] = this->add_device(n_.name + suffix, n_);
+        p_i[i] = this->add_device(p_.name + suffix, p_);
     }
 
     // link devices
     for (int i = 0; i < N; ++i) {
-        link_input(n_i[i], S, S); // to ground
-        link_input(p_i[i], S, D); // to V_dd
-    }
-    for (int i = 0; i < N - 1; ++i) {
-        link(n_i[i], D, p_i[i], D); // common output port
-    }
-    link_output(n_i[N - 1], D, 0); // to circuit output
-    link_output(p_i[N - 1], D, 0); // to circuit output
-    for (int i = 0; i < N; ++i) {
-        // link previous output to current input
-        // last output is fed back to first input
-        link(n_i[i], G, n_i[(i + N - 1) % N], D);
-        link(p_i[i], G, p_i[(i + N - 1) % N], D);
+        this->link_input(n_i[i], S, S); // to ground
+        this->link_input(p_i[i], S, D); // to V_dd
+        this->link_output(n_i[i], G, (i + N - 1) % N); // to previous output
+        this->link_output(p_i[i], G, (i + N - 1) % N); // to previous output
+        this->link_output(n_i[i], D, i); // to output[i]
+        this->link_output(p_i[i], D, i); // to output[i]
     }
 
     // set capacitance
     for (int i = 0; i < N; ++i) {
-        n(i).contacts[G]->c = capacitance;
+        this->outputs[i]->c = capacitance;
     }
 }
 
 template<int N>
 const device & ring_oscillator<N>::n(int i) const {
-    return devices[n_i[i]];
+    return this->devices[n_i[i]];
 }
 template<int N>
 device & ring_oscillator<N>::n(int i) {
-    return devices[n_i[i]];
+    return this->devices[n_i[i]];
 }
 template<int N>
 const device & ring_oscillator<N>::p(int i) const {
-    return devices[p_i[i]];
+    return this->devices[p_i[i]];
 }
 template<int N>
 device & ring_oscillator<N>::p(int i) {
-    return devices[p_i[i]];
+    return this->devices[p_i[i]];
 }
 
 template<int N>
@@ -94,16 +87,16 @@ bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
     };
 
     // set input voltages
-    inputs[S]->V = V[S];
-    inputs[D]->V = V[D];
+    this->inputs[S]->V = V[S];
+    this->inputs[D]->V = V[D];
 
     // starting point
-    outputs[0]->V = V[S];
+    this->outputs[0]->V = V[S];
 
     // solve each inverter seperately, don't go back to the start
     for (i = 0; i < N; ++i) {
         double V_o;
-        bool converged = brent(delta_I, V[S], V[D], 0.0005, V_o);
+        bool converged = brent(delta_I, V[S], V[D], device::dphi_threshold, V_o);
         std::cout << "i = " << i << "; V_out = " << V_o;
         std::cout << (converged ? "" : ", ERROR!!!") << std::endl;
         if (!converged) {
@@ -112,8 +105,10 @@ bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
     }
 
     // save output voltage
-    V_out.resize(1);
-    V_out[0][0] = outputs[0]->V;
+    this->V_out.resize(1);
+    for (i = 0; i < N; ++i) {
+        this->V_out[0][i] = this->outputs[i]->V;
+    }
 
     return true;
 }
