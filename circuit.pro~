@@ -33,8 +33,8 @@ HEADERS += \
     ring_oscillator.hpp \
     util/system.hpp \
     signal.hpp \
-    util/simd/avx.hpp \
-    util/simd/avx2.hpp \
+#    util/simd/avx.hpp \
+#    util/simd/avx2.hpp \
     util/simd/fma.hpp \
     util/simd/mmx.hpp \
     util/simd/simd.hpp \
