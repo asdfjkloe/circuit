@@ -41,7 +41,7 @@ static inline void setup() {
     _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 }
 
-int main() {
+int main(int argc, char ** argv) {
     setup();
 
 //    cout << "saving results in " << save_folder(true, "ptfet_transfer") << endl;
@@ -60,9 +60,20 @@ int main() {
 //    cout << timer.toc() << endl;
 //    return 0;
 
-    ring_oscillator<3> ro(nfet, pfet, 5e-17);
-    ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.5}));
+//    ring_oscillator<3> ro(nfet, pfet, 5e-17);
+//    ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.5}));
 //    ro.save<true>();
+
+    omp_set_num_threads(stoi(argv[1]));
+
+    device d("prototype", ntfet, voltage<3>{0, 0, 0});
+    double l_g = stod(argv[2]);
+    d.p.l_g = l_g;
+    d.p.update("ntfet_lg=" + string(argv[2]));
+
+//    d.steady_state();
+//    plot_ldos(d.p, d.phi[0]);
+    transfer<true>(d.p, {{0, 0.1, 0}, {0, 0.2, 0}, {0, 0.3, 0}}, .6, 500);
 
     return 0;
 }
