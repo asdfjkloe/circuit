@@ -20,7 +20,7 @@
 
 class device {
 public:
-    static constexpr double dphi_threshold = 1e-9; // convergence threshold for dphi
+    static constexpr double dphi_threshold = 1e-10; // convergence threshold for dphi
     static constexpr int max_iterations = 40;      // maximum number of iterations before abortion
     static constexpr unsigned mem = 2000;          // maximum length of the memory integral
 
@@ -94,6 +94,7 @@ private:
 //    inline void calc_U_eff(const cx_double * A, const cx_double * A2, const cx_double * B, const cx_double * C, int N, cx_double * U);
 };
 
+template<bool mark_diverged = true>
 static inline std::vector<current> curve(const device_params & p, const std::vector<voltage<3>> & V);
 
 template<int swiped>
@@ -537,6 +538,7 @@ void device::calc_q() {
 //    }
 //}
 
+template<bool mark_diverged>
 static std::vector<current> curve(const device_params & p, const std::vector<voltage<3>> & V) {
     // solves the steady state problem for a given set of voltages and returns the corresponding currents
 
@@ -545,7 +547,10 @@ static std::vector<current> curve(const device_params & p, const std::vector<vol
     #pragma omp parallel for schedule(dynamic)
     for (unsigned i = 0; i < V.size(); ++i) {
         device d(std::to_string(i) + "/" + std::to_string(V.size()), p, V[i]);
-        d.steady_state();
+        bool converged = d.steady_state();
+        if (mark_diverged && !converged) {
+            d.I[0].total = 666;
+        }
         I[i] = d.I[0];
     }
     return I;
@@ -581,6 +586,7 @@ static arma::mat curve(const device_params & p, const std::vector<voltage<3>> & 
 
 template<bool save>
 static arma::mat transfer(const device_params & p, const std::vector<voltage<3>> & V0, double V_g1, ulint N){
+
     arma::mat ret = curve<G>(p, V0, V_g1, N);
 
     if (save) {
@@ -598,10 +604,6 @@ static arma::mat output(const device_params & p, const std::vector<voltage<3>> &
     }
     return ret;
 }
-
-
-
-
 
 #endif
 

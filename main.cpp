@@ -66,14 +66,17 @@ int main(int argc, char ** argv) {
 
     omp_set_num_threads(stoi(argv[1]));
 
-    device d("prototype", ntfet, voltage<3>{0, 0, 0});
+    device d("prototype", ntfet);
     double l_g = stod(argv[2]);
     d.p.l_g = l_g;
     d.p.update("ntfet_lg=" + string(argv[2]));
 
-//    d.steady_state();
-//    plot_ldos(d.p, d.phi[0]);
-    transfer<true>(d.p, {{0, 0.1, 0}, {0, 0.2, 0}, {0, 0.3, 0}}, .6, 500);
+    cout << "saving results in " << save_folder(false, "lg=" + string(argv[2])) << endl;
+    ofstream s(save_folder() + "geometry.ini");
+    s << d.p.to_string();
+    s.close();
+
+    transfer<true>(d.p, {{0, 0.1, -0.4}, {0, 0.2, -0.4}, {0, 0.3, -0.4}}, .4, 1000);
 
     return 0;
 }
