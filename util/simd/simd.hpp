@@ -8,8 +8,8 @@
 #include "ssse3.hpp"
 #include "sse4_1.hpp"
 #include "sse4_2.hpp"
-#include "avx.hpp"
-#include "avx2.hpp"
+//#include "avx.hpp"
+//#include "avx2.hpp"
 #include "fma.hpp"
 
 #endif
