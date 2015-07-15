@@ -1,0 +1,11 @@
+#!/bin/zsh
+
+nthreads=8
+
+for lg in 5 10 15 20 25 30
+do
+  sim_name=ntfet_lg="$lg"
+  echo submitting job $sim_name
+  bsub -W 60 -M 600 -a "bcs openmp" -n $nthreads -J $sim_name -o logfiles/$sim_name.log LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/fm093026/local_usr/lib ./circuit $nthreads $lg
+done
+

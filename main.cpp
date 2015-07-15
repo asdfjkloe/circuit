@@ -41,7 +41,7 @@ static inline void setup() {
     _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 }
 
-int main() {
+int main(int argc, char ** argv) {
     setup();
 
 //    cout << "saving results in " << save_folder(true, "ptfet_transfer") << endl;
@@ -60,17 +60,23 @@ int main() {
 //    cout << timer.toc() << endl;
 //    return 0;
 
-//    potential::plot2D(nfet, {0.0, 0.5, 0.0});
-//    return 0;
-
-    potential phi(nfet, voltage<3>{0.0, 0.5, 0.0});
-    plot_ldos(nfetc, phi);
-
-    return 0;
-
-    ring_oscillator<3> ro(nfet, pfet, 5e-17);
-    ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.5}));
+//    ring_oscillator<3> ro(nfet, pfet, 5e-17);
+//    ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.5}));
 //    ro.save<true>();
+
+    omp_set_num_threads(stoi(argv[1]));
+
+    device d("prototype", ntfet);
+    double l_g = stod(argv[2]);
+    d.p.l_g = l_g;
+    d.p.update("ntfet_lg=" + string(argv[2]));
+
+    cout << "saving results in " << save_folder(false, "lg=" + string(argv[2])) << endl;
+    ofstream s(save_folder() + "geometry.ini");
+    s << d.p.to_string();
+    s.close();
+
+    transfer<true>(d.p, {{0, 0.1, -0.4}, {0, 0.2, -0.4}, {0, 0.3, -0.4}}, .4, 1000);
 
     return 0;
 }
