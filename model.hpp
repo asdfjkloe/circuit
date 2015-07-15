@@ -31,6 +31,18 @@ static const model nfet_model {
     }
 };
 
+static const model nfetc_model {
+    0.62,             // E_g
+    0.01 * c::m_e,    // m_eff
+    0.4,              // E_gc
+    0.05 * c::m_e,    // m_efc
+    {
+        0.62 / 2 + 0.015, // F[S]
+        0.62 / 2 + 0.015, // F[D]
+        0.2               // F[G]
+    }
+};
+
 static const model pfet_model {
     nfet_model.E_g,   // E_g
     nfet_model.m_eff, // m_eff

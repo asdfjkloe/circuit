@@ -60,6 +60,14 @@ int main() {
 //    cout << timer.toc() << endl;
 //    return 0;
 
+//    potential::plot2D(nfet, {0.0, 0.5, 0.0});
+//    return 0;
+
+    potential phi(nfet, voltage<3>{0.0, 0.5, 0.0});
+    plot_ldos(nfetc, phi);
+
+    return 0;
+
     ring_oscillator<3> ro(nfet, pfet, 5e-17);
     ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.5}));
 //    ro.save<true>();
