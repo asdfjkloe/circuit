@@ -9,6 +9,7 @@
 #include "device_params.hpp"
 #include "voltage.hpp"
 #include "util/anderson.hpp"
+#include "util/gnuplot.hpp"
 
 class potential {
 public:
@@ -39,6 +40,9 @@ public:
 
     static inline arma::vec get_R(const device_params & p, const arma::vec & R0, const charge_density & n);
     static inline const arma::sp_mat & get_C(const device_params & p);
+
+    static inline void plot2D(const device_params & p, const voltage<3> & V, const charge_density & n);
+    static inline void plot2D(const device_params & p, const voltage<3> & V);
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -321,6 +325,120 @@ const arma::sp_mat & potential::get_C(const device_params & p) {
     // create, save and return sparse matrix C
     C[p.name] = sp_mat(indices, values);
     return C[p.name];
+}
+
+void potential::plot2D(const device_params & p, const voltage<3> & V, const charge_density & n) {
+
+    arma::vec phi2Dv = spsolve(get_C(p), get_R(p, get_R0(p, V), n));
+
+    arma::mat phi2D(p.N_x, p.M_r);
+
+    // fill the matrix
+    for (int j = 0; j < p.M_r; ++j) {
+        for (int i = 0; i < p.N_x; ++i) {
+            phi2D(i, j) = phi2Dv(j * p.N_x + i);
+        }
+    }
+
+    // mirror
+    phi2D = arma::join_horiz(arma::fliplr(phi2D), phi2D).t();
+
+    gnuplot gp;
+
+    // gnuplot setup
+
+    gp << "set palette defined (0 '#B2182B', 1 '#D6604D', 2 '#F4A582', 3 '#FDDBC7', 4 '#D1E5F0', 5 '#92C5DE', 6 '#4393C3', 7 '#2166AC')\n";
+    gp << "set title \"Potential cross-section for V_{s} = " << V[S] << " V, V_{g} = " << V[G] << " V and V_{d} = " << V[D] << " V\"\n";
+    gp << "set xlabel \"x / nm\"\n";
+    gp << "set ylabel \"r / nm\"\n";
+    gp << "set zlabel \"Phi / V\"\n";
+    gp << "unset key\n";
+
+    //    gp << "set terminal pdf\nset output 'potential2D.pdf'\n";
+
+    // indicate cnt area
+    gp << "set obj rect from " << 0 << "," << p.r_cnt << " to " << p.l << "," << -p.r_cnt << "front fillstyle empty\n";
+    gp << "set label \"CNT\" at " << 0.5 * p.l << "," << 0 << " center front\n";
+
+    // indicate oxide area
+    double x0 = p.l_sc;
+    double x1 = p.l - p.l_dc;
+    double y0 = p.r_cnt + p.d_ox;
+    double y1 = p.r_cnt;
+    gp << "set obj rect from " << x0 << "," << y0 << " to " << x1 << "," << y1 << "front fillstyle empty\n";
+    gp << "set label \"gate oxide\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * (y1 - y0) - y1<< " center front\n";
+    gp << "set obj rect from " << x0 << "," << -y1 << " to " << x1 << "," << -y0 << "front fillstyle empty\n";
+    gp << "set label \"gate oxide\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * -(y1 - y0) + y1 << " center front\n";
+
+    // indicate gate contact area
+    x0 = p.l_sc + p.l_sox + p.l_sg;
+    x1 = p.l - p.l_dc - p.l_dox - p.l_dg;
+    y0 = p.R;
+    y1 = p.r_cnt + p.d_ox;
+    gp << "set obj rect from " << x0 << "," << y0 << " to " << x1 << "," << y1 << "front fillstyle empty\n";
+    gp << "set label \"gate\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * (y1 - y0) - y1<< " center front\n";
+    gp << "set obj rect from " << x0 << "," << -y1 << " to " << x1 << "," << -y0 << "front fillstyle empty\n";
+    gp << "set label \"gate\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * -(y1 - y0) + y1 << " center front\n";
+
+    // indicate contact areas
+    // --------------------------------------------------------------------------------------
+    // top/bottom
+    x0 = 0;
+    x1 = p.l_sc + p.l_sox;
+    y0 = p.R;
+    y1 = y0;
+    gp << "set arrow from " << x0 << "," << y0 << " to "<< x1 << "," << y1 << " nohead front\n";
+    gp << "set arrow from " << x0 << "," << -y0 << " to "<< x1 << "," << -y1 << " nohead front\n"; //mirror y
+    x0 = p.l - p.l_dc - p.l_dox;
+    x1 = p.l;
+    gp << "set arrow from " << x0 << "," << y0 << " to "<< x1 << "," << y1 << " nohead front\n"; //mirror x
+    gp << "set arrow from " << x0 << "," << -y0 << " to "<< x1 << "," << -y1 << " nohead front\n"; //mirror both
+
+    // outside
+    x0 = 0;
+    y0 = p.R;
+    x1 = x0;
+    y1 = p.r_cnt;
+    gp << "set arrow from " << x0 << "," << y0 << " to "<< x1 << "," << y1 << " nohead front\n";
+    gp << "set arrow from " << x0 << "," << -y0 << " to "<< x1 << "," << -y1 << " nohead front\n"; //mirror
+    x0 = p.l;
+    x1 = x0;
+    gp << "set arrow from " << x0 << "," << y0 << " to "<< x1 << "," << y1 << " nohead front\n"; //mirror x
+    gp << "set arrow from " << x0 << "," << -y0 << " to "<< x1 << "," << -y1 << " nohead front\n"; //mirror both
+
+    // inside
+    x0 = p.l_sc + p.l_sox;
+    y0 = p.R;
+    x1 = x0;
+    y1 = p.r_cnt + p.d_ox;
+    gp << "set arrow from " << x0 << "," << y0 << " to "<< x1 << "," << y1 << " nohead front\n";
+    gp << "set arrow from " << x0 << "," << -y0 << " to "<< x1 << "," << -y1 << " nohead front\n"; //mirror
+    x0 = p.l - p.l_dc - p.l_dox;
+    x1 = x0;
+    gp << "set arrow from " << x0 << "," << y0 << " to "<< x1 << "," << y1 << " nohead front\n"; //mirror x
+    gp << "set arrow from " << x0 << "," << -y0 << " to "<< x1 << "," << -y1 << " nohead front\n"; //mirror both
+
+    // label
+    x0 = 0;
+    x1 = p.l_sc + p.l_sox;
+    y0 = p.r_cnt + p.d_ox;
+    y1 = p.R;
+    gp << "set label \"source\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * -(y1 - y0) + y1 << " center front\n";
+    gp << "set label \"source\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * +(y1 - y0) - y1 << " center front\n"; //mirror y
+    x0 = p.l;
+    x1 = p.l - p.l_dc - p.l_dox;
+    gp << "set label \"drain\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * -(y1 - y0) + y1 << " center front\n"; //mirror x
+    gp << "set label \"drain\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * +(y1 - y0) - y1 << " center front\n"; //mirror both
+
+    gp.set_background(p.x, arma::join_vert(arma::flipud(-p.r), p.r), phi2D);
+    gp.plot();
+}
+
+void potential::plot2D(const device_params & p, const voltage<3> & V) {
+    charge_density n;
+    n.total.resize(p.N_x);
+    n.total.fill(0.0);
+    plot2D(p, V, n);
 }
 
 #endif

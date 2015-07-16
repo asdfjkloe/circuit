@@ -64,12 +64,15 @@ int main(int argc, char ** argv) {
 //    ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.5}));
 //    ro.save<true>();
 
-    device d("asdf", nfet, voltage<3>{0.0, 0.5, 0.0});
-    d.steady_state();
+    device d("dev", nfet, voltage<3>{0.2, 0.3, 0.1});
+    d.steady_state<true>();
 
-    plot(charge_density::get_n0(nfet));
-    plot(d.phi[0].data);
-    plot(d.n[0].total);
+//    plot(charge_density::get_n0(ntfet));
+//    plot(d.phi[0].data);
+    plot_ldos(d.p, d.phi[0]);
+    potential::plot2D(d.p, d.V[0], d.n[0]);
+
+//    plot(d.n[0].total);
 
     return 0;
 
