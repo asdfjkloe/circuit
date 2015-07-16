@@ -40,7 +40,7 @@ private:
     template<bool source>
     static inline arma::vec get_A(const device_params & p, const potential & phi, double E);
 
-    static inline arma::vec get_n0(const device_params & p);
+public:    static inline arma::vec get_n0(const device_params & p);
 };
 
 #endif
@@ -440,17 +440,17 @@ arma::vec charge_density::get_n0(const device_params & p) {
     vec nsgd = nvsgd + ncsgd;
 
     vec ret(p.N_x);
-    ret(p.sc).fill(nc(0));
-    if (p.sox. a < p.sox.b) {
-        ret(p.sox).fill(nsgd(0));
+    ret.rows(0, p.sox.a).fill(nc(0));
+    if (p.sg.a >= p.sox.a + 1) {
+        ret.rows(p.sox.a + 1, p.sg.a).fill(nsgd(0));
     }
-    ret(p.sg).fill(0);
-    ret(p.g).fill(nsgd(1));
-    ret(p.dg).fill(0);
-    if (p.dox.a < p.dox.b) {
-        ret(p.dox).fill(nsgd(2));
+    ret.rows(p.sg.a + 1, p.sg.b).fill(0.0);
+    ret.rows(p.g.a, p.dg.a).fill(nsgd(1));
+    ret.rows(p.dg.a + 1, p.dg.b).fill(0.0);
+    if (p.dox.b >= p.dox.a) {
+        ret.rows(p.dox.a, p.dox.b).fill(nsgd(2));
     }
-    ret(p.dc).fill(nc(1));
+    ret.rows(p.dc.a, p.N_x - 1).fill(nc(1));
 
     ret *= 2 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
 

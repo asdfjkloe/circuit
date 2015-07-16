@@ -224,15 +224,15 @@ void device_params::update(const std::string & n_) {
     N_dg  = round(l_dg  / dx);
     N_dox = round(l_dox / dx);
     N_dc  = round(l_dc  / dx);
-    N_x   = N_sc + N_sox + N_sg + N_g + N_dg + N_dox + N_dc;
-    x     = arma::linspace(0.5 * dx, l - 0.5 * dx, N_x);
+    N_x   = N_sc + N_sox + N_sg + N_g + N_dg + N_dox + N_dc + 1;
+    x     = arma::linspace(0, l, N_x);
 
     // r lattice
     M_cnt = round(r_cnt / dr);
     M_ox  = round(d_ox  / dr);
     M_ext = round(r_ext / dr);
-    M_r   = M_cnt + M_ox + M_ext;
-    r     = arma::linspace(0.5 * dr, R - 0.5 * dr, M_r);
+    M_r   = M_cnt + M_ox + M_ext + 1;
+    r     = arma::linspace(0, R, M_r);
 
     // ranges
     sc   = arma::span(        0,   - 1 + N_sc );
@@ -260,19 +260,20 @@ void device_params::update(const std::string & n_) {
     // create t_vec
     t_vec = arma::vec(N_x * 2 - 1);
     bool b = true;
-    for (unsigned i = sc2.a; i < sc2.b; ++i) {
+    unsigned i;
+    for (i = 0; i < sc2.b + 2; ++i) {
         t_vec(i) = b ? tc1 : tc2;
         b = !b;
     }
-    t_vec(sc2.b) = tcc;
+    t_vec(i++) = tcc;
     b = true;
-    for (unsigned i = sox2.a; i < dox2.b; ++i) {
+    for (; i < dox2.b; ++i) {
         t_vec(i) = b ? t1 : t2;
         b = !b;
     }
-    t_vec(dox2.b) = tcc;
+    t_vec(i++) = tcc;
     b = true;
-    for (unsigned i = dc2.a; i < dc2.b; ++i) {
+    for (; i < N_x * 2 - 1; ++i) {
         t_vec(i) = b ? tc1 : tc2;
         b = !b;
     }

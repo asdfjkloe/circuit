@@ -64,7 +64,16 @@ int main(int argc, char ** argv) {
 //    ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.5}));
 //    ro.save<true>();
 
-    omp_set_num_threads(stoi(argv[1]));
+    device d("asdf", nfet, voltage<3>{0.0, 0.5, 0.0});
+    d.steady_state();
+
+    plot(charge_density::get_n0(nfet));
+    plot(d.phi[0].data);
+    plot(d.n[0].total);
+
+    return 0;
+
+    /*omp_set_num_threads(stoi(argv[1]));
 
     device d("prototype", ntfet);
     double l_g = stod(argv[2]);
@@ -78,6 +87,6 @@ int main(int argc, char ** argv) {
 
     transfer<true>(d.p, {{0, 0.1, -0.4}, {0, 0.2, -0.4}, {0, 0.3, -0.4}}, .4, 1000);
 
-    return 0;
+    return 0;*/
 }
 

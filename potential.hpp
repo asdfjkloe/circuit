@@ -9,7 +9,6 @@
 #include "device_params.hpp"
 #include "voltage.hpp"
 #include "util/anderson.hpp"
-#include "util/gnuplot.hpp"
 
 class potential {
 public:
@@ -20,7 +19,6 @@ public:
     inline potential(const device_params & p, const arma::vec & R);
     inline potential(const device_params & p, const arma::vec & R0, const charge_density & n);
     inline potential(const device_params & p, const voltage<3> & V);
-    inline potential(const device_params & p, const voltage<3> & V, const charge_density & n);
     inline double update(const device_params & p, const arma::vec & R0, const charge_density & n, anderson & mr_neo);
 
     inline double & operator()(int index);
@@ -32,16 +30,7 @@ public:
 
     static inline arma::vec get_R0(const device_params & p, const voltage<3> & V);
 
-    static inline void plot2D(const device_params & p, const voltage<3> & V, const charge_density & n);
-    static inline void plot2D(const device_params & p, const voltage<3> & V);
-
-private:
-    enum {
-        L = 0, // left
-        R = 1, // right
-        I = 2, // inside
-        O = 3  // outside
-    };
+//private:
 
     inline void update_twice();
 
@@ -49,8 +38,7 @@ private:
     inline void smooth(unsigned x0, unsigned x1);
 
     static inline arma::vec get_R(const device_params & p, const arma::vec & R0, const charge_density & n);
-    static inline const arma::sp_mat & get_S(const device_params & p);
-    static inline const std::array<arma::mat, 4> & get_eps(const device_params & p);
+    static inline const arma::sp_mat & get_C(const device_params & p);
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -64,7 +52,7 @@ potential::potential(const device_params & p, const arma::vec & R) {
     vec phi2D;
     #pragma omp critical
     {
-        phi2D = spsolve(get_S(p), R);
+        phi2D = spsolve(get_C(p), R);
     }
 
     data = phi2D.rows((p.M_cnt - 1) * p.N_x, p.M_cnt * p.N_x - 1);
@@ -76,9 +64,6 @@ potential::potential(const device_params & p, const arma::vec & R0, const charge
 }
 potential::potential(const device_params & p, const voltage<3> & V)
     : potential(p, get_R0(p, V)) {
-}
-potential::potential(const device_params & p, const voltage<3> & V, const charge_density & n)
-    : potential(p, get_R(p, get_R0(p, V), n)) {
 }
 
 double potential::update(const device_params & p, const arma::vec & R0, const charge_density & n, anderson & mr_neo) {
@@ -129,13 +114,6 @@ void potential::smooth(const device_params & p) {
 arma::vec potential::get_R0(const device_params & p, const voltage<3> & V0) {
     using namespace arma;
 
-    // shortcuts
-    double dr2 = 1.0 / p.dr / p.dr;
-    double dx2 = 1.0 / p.dx / p.dx;
-
-    // get reference to 4 eps matrices (one for each direction)
-    const std::array<arma::mat, 4> & eps = get_eps(p);
-
     // add built-in voltages
     voltage<3> V = - (V0 + p.F);
 
@@ -143,186 +121,27 @@ arma::vec potential::get_R0(const device_params & p, const voltage<3> & V0) {
     vec R0(p.N_x * p.M_r);
     R0.fill(0.0);
 
-    // create R0 from geometry and voltages
-    int i, j, k;
-    double r, rp;
-
-    // add dirichlet boundary conditions where necessary
-    j = p.M_cnt - 1;
-    r = j * p.dr + 0.5 * p.dr;
-    rp = r + 0.5 * p.dr;
-    k = j * p.N_x;
-    for (i = 0; i < p.N_sc; ++i) {
-        R0(k++) -= dr2 * rp * eps[O](i, j) * V[S];
-    }
-    k = j * p.N_x + p.N_x - p.N_dc;
-    for (i = p.N_x - p.N_dc; i < p.N_x; ++i) {
-        R0(k++) -= dr2 * rp * eps[O](i, j) * V[D];
-    }
-    for (j = p.M_cnt; j < p.M_cnt + p.M_ox - 1; ++j) {
-        r = j * p.dr + 0.5 * p.dr;
-        R0(k) -= dx2 * r * eps[L](p.N_sc, j) * V[S];
-        k += p.N_sox + p.N_sg + p.N_g + p.N_dg + p.N_dox - 1;
-        R0(k++) -= dx2 * r * eps[R](p.N_x - p.N_dc - 1, j) * V[D];
-    }
-    r = j * p.dr + 0.5 * p.dr;
-    rp = r + 0.5 * p.dr;
-    R0(k) -= dx2 * r * eps[L](p.N_sc, j) * V[S];
-    for (i = p.N_sc; i < p.N_sc + p.N_sox; ++i) {
-        R0(k++) -= dr2 * rp * eps[O](i, j) * V[S];
-    }
-    k += p.N_sg;
-    for (i = p.N_sc + p.N_sox + p.N_sg; i < p.N_sc + p.N_sox + p.N_sg + p.N_g; ++i) {
-        R0(k++) -= dr2 * rp * eps[O](i, j) * V[G];
-    }
-    k += p.N_dg;
-    for (i = p.N_x - p.N_dc - p.N_dox; i < p.N_x - p.N_dc; ++i) {
-        R0(k++) -= dr2 * rp * eps[O](i, j) * V[D];
-    }
-    R0(k - 1) -= dx2 * r * eps[R](p.N_x - p.N_dc - 1, j) * V[D];
-
-    for (j = p.M_cnt + p.M_ox; j < p.M_r; ++j) {
-        r = j * p.dr + 0.5 * p.dr;
-        R0(k) -= dx2 * r * eps[L](p.N_sc + p.N_sox, j) * V[S];
-        k += p.N_sg - 1;
-        R0(k++) -= dx2 * r * eps[R](p.N_sc + p.N_sox + p.N_sg - 1, j) * V[G];
-        R0(k) -= dx2 * r * eps[L](p.N_sc + p.N_sox + p.N_sg + p.N_g, j) * V[G];
-        k += p.N_dg - 1;
-        R0(k++) -= dx2 * r * eps[R](p.N_x - p.N_dc - p.N_dox - 1, j) * V[D];
-    }
-
-    // shrink to fit and return
-    R0.resize(k);
-    return R0;
-}
-
-void potential::plot2D(const device_params & p, const voltage<3> & V, const charge_density & n) {
-    // solve poisson's
-    arma::vec phi2Dv = spsolve(get_S(p), get_R(p, get_R0(p, V), n));
-
-    arma::mat phi2D(p.N_x, p.M_r);
-    int k = 0;
-    for (int j = 0; j < p.M_r; ++j) {
-        for (int i = 0; i < p.N_x; ++i) {
-            if (j < p.M_cnt) {
-                phi2D(i, j) = phi2Dv(k++);
-            } else if (j < p.M_cnt + p.M_ox) {
-                if (i < p.N_sc) {
-                    phi2D(i, j) = -(V[S] + p.F[S]);
-                } else if (i >= p.N_x - p.N_dc) {
-                    phi2D(i, j) = -(V[D] + p.F[D]);
-                } else {
-                    phi2D(i, j) = phi2Dv(k++);
-                }
-            } else {
-                if (i < p.N_sc + p.N_sox) {
-                    phi2D(i, j) = -(V[S] + p.F[S]);
-                } else if (i >= p.N_x - p.N_dc - p.N_dox) {
-                    phi2D(i, j) = -(V[D] + p.F[D]);
-                } else if ((i >= p.N_sc + p.N_sox + p.N_sg) && (i < p.N_sc + p.N_sox + p.N_sg + p.N_g)) {
-                    phi2D(i, j) = -(V[G]+ p.F[G]);
-                } else {
-                    phi2D(i, j) = phi2Dv(k++);
-                }
-            }
+    for (int j = p.M_cnt + 1; j < p.M_cnt + p.M_ox; ++j) {
+        for (int i = 0; i <= (int)p.sox.a; ++i) {
+            R0(j * p.N_x + i) = V[S];
+        }
+        for (int i = p.dc.a; i < p.N_x; ++i) {
+            R0(j * p.N_x + i) = V[D];
         }
     }
-    phi2D = arma::join_horiz(arma::fliplr(phi2D), phi2D).t();
+    for (int j = p.M_cnt + p.M_ox; j < p.M_r; ++j) {
+        for (int i = 0; i <= (int)p.sg.a; ++i) {
+            R0(j * p.N_x + i) = V[S];
+        }
+        for (int i = p.g.a; i <= (int)p.dg.a; ++i) {
+            R0(j * p.N_x + i) = V[G];
+        }
+        for (int i = p.dox.a; i < p.N_x; ++i) {
+            R0(j * p.N_x + i) = V[D];
+        }
+    }
 
-    gnuplot gp;
-
-    // gnuplot setup
-    gp << "set palette defined ( 0 '#D73027', 1 '#F46D43', 2 '#FDAE61', 3 '#FEE090', 4 '#E0F3F8', 5 '#ABD9E9', 6 '#74ADD1', 7 '#4575B4' )\n";
-    gp << "set title \"Potential cross-section for V_{s} = " << V[S] << " V, V_{g} = " << V[G] << " V and V_{d} = " << V[D] << " V\"\n";
-    gp << "set xlabel \"x / nm\"\n";
-    gp << "set ylabel \"r / nm\"\n";
-    gp << "set zlabel \"Phi / V\"\n";
-    gp << "unset key\n";
-
-//    gp << "set terminal pdf\nset output 'potential2D.pdf'\n";
-
-    // indicate cnt area
-    gp << "set obj rect from " << 0 << "," << p.r_cnt << " to " << p.l << "," << -p.r_cnt << "front fillstyle empty\n";
-    gp << "set label \"CNT\" at " << 0.5 * p.l << "," << 0 << " center front\n";
-
-    // indicate oxide area
-    double x0 = p.l_sc;
-    double x1 = p.l - p.l_dc;
-    double y0 = p.r_cnt + p.d_ox;
-    double y1 = p.r_cnt;
-    gp << "set obj rect from " << x0 << "," << y0 << " to " << x1 << "," << y1 << "front fillstyle empty\n";
-    gp << "set label \"gate oxide\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * (y1 - y0) - y1<< " center front\n";
-    gp << "set obj rect from " << x0 << "," << -y1 << " to " << x1 << "," << -y0 << "front fillstyle empty\n";
-    gp << "set label \"gate oxide\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * -(y1 - y0) + y1 << " center front\n";
-
-    // indicate gate contact area
-    x0 = p.l_sc + p.l_sox + p.l_sg;
-    x1 = p.l - p.l_dc - p.l_dox - p.l_dg;
-    y0 = p.R;
-    y1 = p.r_cnt + p.d_ox;
-    gp << "set obj rect from " << x0 << "," << y0 << " to " << x1 << "," << y1 << "front fillstyle empty\n";
-    gp << "set label \"gate\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * (y1 - y0) - y1<< " center front\n";
-    gp << "set obj rect from " << x0 << "," << -y1 << " to " << x1 << "," << -y0 << "front fillstyle empty\n";
-    gp << "set label \"gate\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * -(y1 - y0) + y1 << " center front\n";
-
-    // indicate left contact areas
-    // --------------------------------------------------------------------------------------
-    // top/bottom
-    x0 = 0 + p.dx/2;
-    x1 = p.l_sc + p.l_sox + p.dx/2;
-    y0 = p.R - p.dr/2;
-    y1 = y0;
-    gp << "set arrow from " << x0 << "," << y0 << " to "<< x1 << "," << y1 << " nohead front\n";
-    gp << "set arrow from " << x0 << "," << -y0 << " to "<< x1 << "," << -y1 << " nohead front\n"; //mirror y
-    x0 = p.l - p.dx/2;
-    x1 = p.l - x1 - p.l_dc - p.l_dox - p.dx/2;
-    gp << "set arrow from " << x0 << "," << y0 << " to "<< x1 << "," << y1 << " nohead front\n"; //mirror x
-    gp << "set arrow from " << x0 << "," << -y0 << " to "<< x1 << "," << -y1 << " nohead front\n"; //mirror both
-
-    // outside
-    x0 = 0;
-    y0 = p.R - p.dr/2;
-    x1 = x0;
-    y1 = p.r_cnt;
-    gp << "set arrow from " << x0 << "," << y0 << " to "<< x1 << "," << y1 << " nohead front\n";
-    gp << "set arrow from " << x0 << "," << -y0 << " to "<< x1 << "," << -y1 << " nohead front\n"; //mirror
-    x0 = p.l - p.dx/2;
-    x1 = x0;
-    gp << "set arrow from " << x0 << "," << y0 << " to "<< x1 << "," << y1 << " nohead front\n"; //mirror x
-    gp << "set arrow from " << x0 << "," << -y0 << " to "<< x1 << "," << -y1 << " nohead front\n"; //mirror both
-
-    // inside
-    x0 = p.l_sc + p.l_sox;
-    y0 = p.R - p.dr/2;
-    x1 = x0;
-    y1 = p.r_cnt + p.d_ox;
-    gp << "set arrow from " << x0 << "," << y0 << " to "<< x1 << "," << y1 << " nohead front\n";
-    gp << "set arrow from " << x0 << "," << -y0 << " to "<< x1 << "," << -y1 << " nohead front\n"; //mirror
-    x0 = p.l - p.l_dc - p.l_dox;
-    x1 = x0;
-    gp << "set arrow from " << x0 << "," << y0 << " to "<< x1 << "," << y1 << " nohead front\n"; //mirror x
-    gp << "set arrow from " << x0 << "," << -y0 << " to "<< x1 << "," << -y1 << " nohead front\n"; //mirror both
-
-    // label
-    x0 = 0;
-    x1 = p.l_sc + p.l_sox;
-    y0 = p.r_cnt + p.d_ox;
-    y1 = p.R - p.dr/2;
-    gp << "set label \"source\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * -(y1 - y0) + y1 << " center front\n";
-    gp << "set label \"source\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * +(y1 - y0) - y1 << " center front\n"; //mirror y
-    x0 = p.l;
-    x1 = p.l - p.l_dc - p.l_dox;
-    gp << "set label \"drain\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * -(y1 - y0) + y1 << " center front\n"; //mirror x
-    gp << "set label \"drain\" at " << 0.5 * (x1 - x0) + x0 << "," << 0.5 * +(y1 - y0) - y1 << " center front\n"; //mirror both
-
-    gp.set_background(p.x, arma::join_vert(arma::flipud(-p.r), p.r), phi2D);
-    gp.plot();
-}
-void potential::plot2D(const device_params & p, const voltage<3> & V) {
-    charge_density n;
-    n.total.resize(p.N_x);
-    n.total.fill(0.0);
-    plot2D(p, V, n);
+    return R0;
 }
 
 void potential::update_twice() {
@@ -396,121 +215,101 @@ arma::vec potential::get_R(const device_params & p, const arma::vec & R0, const 
     R.rows((p.M_cnt - 1) * p.N_x, p.M_cnt * p.N_x - 1) += n.total * p.r_cnt * 1e9; // 10^9 because of m->nm in eps_0
     return R;
 }
-const arma::sp_mat & potential::get_S(const device_params & p) {
-    // check if S was already calculated for this device
-    static thread_local std::map<std::string, arma::sp_mat> S;
-    auto it = S.find(p.name);
-    if (it != std::end(S)) {
+const arma::sp_mat & potential::get_C(const device_params & p) {
+    using namespace arma;
+
+    // check if C was already calculated for this device
+    static thread_local std::map<std::string, arma::sp_mat> C;
+    auto it = C.find(p.name);
+    if (it != std::end(C)) {
         return it->second;
     }
 
-    // calculate new S
-    using namespace arma;
+    // get epsilon for indices i, j
+    auto eps = [&p] (int i, int j) -> double {
+        if (j < 0) {
+        } else if (j < p.M_cnt) {
+            if ((i >= (int)p.sc.a) && (i <= (int)p.dc.b)) {
+                return p.eps_cnt * c::eps_0;
+            }
+        } else if (j < p.M_cnt + p.M_ox) {
+            if ((i >= (int)p.sox.a) && (i <= (int)p.dox.b)) {
+                return p.eps_ox * c::eps_0;
+            } else {
+                if ((i >= (int)p.sc.a) && (i <= (int)p.dc.b)) {
+                    return c::eps_0;
+                }
+            }
+        } else if (j < p.M_r - 1) {
+            if ((i >= (int)p.sg.a) && ((i <= (int)p.sg.b) || (i >= (int)p.dg.a)) && (i <= (int)p.dg.b)) {
+                return c::eps_0;
+            }
+        }
+        return 0.0;
+    };
 
-    // shortcuts
-    double dr2 = 1.0 / p.dr / p.dr;
-    double dx2 = 1.0 / p.dx / p.dx;
-
-    // get reference to 4 eps matrices (one for each direction)
-    const std::array<arma::mat, 4> & eps = get_eps(p);
+    // check if (i, j) has dirichlet boundary conditions
+    auto dirichlet = [&p] (int i, int j) -> bool {
+        if ((j > p.M_cnt) && (j < p.M_cnt + p.M_ox)) {
+            if ((i <= (int)p.sox.a) || (i > (int)p.dox.b)) {
+                return true;
+            }
+        } else if (j >= p.M_cnt + p.M_ox) {
+            if ((i <= (int)p.sg.a) || ((i > (int)p.sg.b) && (i <= (int)p.dg.a)) || (i > (int)p.dg.b)) {
+                return true;
+            }
+        }
+        return false;
+    };
 
     // helper objects to create sparse matrix faster
     umat indices(2, p.M_r * p.N_x * 5);
-    vec values(     p.M_r * p.N_x * 5);
+    vec  values(    p.M_r * p.N_x * 5);
     uword N_v = 0;
     auto set_value = [&indices, &values, &N_v] (uword i, uword j, double val) {
-        indices(0, N_v) = i;
-        indices(1, N_v) = j;
-        values(N_v++) = val;
+        if (val != 0.0) {
+            indices(0, N_v) = i;
+            indices(1, N_v) = j;
+            values(N_v++) = val;
+        }
     };
 
+    // shortcuts
+    double dr = p.dr;
+    double dx = p.dx;
+    double dr_dx = dr / dx;
+    double dx_dr = dx / dr;
+
     // start values
-    int k     = 0;     // current main diagonal element
-    int i0    = 0;     // left i limit
-    int i1    = p.N_x; // right i limit
-    int delta = p.N_x; // distance to next vertical coupling off diagonal
+    int k       = 0;     // current main diagonal element index
 
     // main loop over rows
     for (int j = 0; j < p.M_r; ++j) {
         // radius
-        double r = (j + 0.5) * p.dr;
-        double rm = r - 0.5 * p.dr;
-        double rp = r + 0.5 * p.dr;
+        double r   = j * dr;
+        double rp  = r + 0.25 * dr;
+        double rpp = r + 0.5  * dr;
+        double rm  = r - 0.25 * dr;
+        double rmm = r - 0.5  * dr;
 
-        // loop over columns
-        for (int i = i0; i < i1; ++i) {
-            // matrix entries
-            double diag    = - dx2 * (r  * eps[L](i, j) + r  * eps[R](i, j))
-                             - dr2 * (rp * eps[O](i, j) + rm * eps[I](i, j));
-            double left    = dx2 * r  * eps[L](i, j);
-            double right   = (i > i0) ? dx2 * r  * eps[R](i - 1, j) : 0;
-            double inside  = dr2 * rm * eps[I](i, j);
-            double outside = (j >  0) ? dr2 * rm * eps[O](i, j - 1) : 0;
-
-            // horizontal von Neumann boundary conditions
-            if (i == 1) {
-                right *= 2;
-            }
-            if (i == p.N_x - 1) {
-                left *= 2;
-            }
-
-            // vertical von Neumann boundary conditions
-            if (j == 1) {
-                outside -= dr2 * 0.5 * p.dr * eps[O](i, 0);
-                outside *= 2;
-            }
-            if (j == p.M_r - 1) {
-                inside += dr2 * 0.5 * p.dr * eps[I](i, p.M_r - 1);
-                inside *= 2;
-            }
-
-            // store values
-            set_value(k, k, diag);
-            if (i > i0) {
-                set_value(k, k - 1, left);
-                set_value(k - 1, k, right);
-            }
-            if (j > 0) {
-                set_value(k, k - delta, inside);
-                set_value(k - delta, k, outside);
-            }
-
-            // next diag element
-            ++k;
-        }
-
-        // cut off source, drain contacts
-        if (j == p.M_cnt - 1) {
-            i0 = p.N_sc;
-            i1 = p.N_x - p.N_dc;
-            delta = p.N_x - p.N_sc;
-        }
-        if (j == p.M_cnt) {
-            delta = p.N_x - p.N_sc - p.N_dc;
-        }
-
-        // cut off gate contact
-        if (j == p.M_cnt + p.M_ox - 1) {
-            i0 = p.N_sc + p.N_sox;
-            i1 = i0 + p.N_sg;
-            delta = p.N_x - p.N_sc - p.N_dc - p.N_sox;
-        }
-        if ((j == p.M_cnt + p.M_ox) && (i0 == p.N_sc + p.N_sox)) {
-            delta = p.N_x - p.N_sc - p.N_dc - p.N_sox - p.N_g;
-        }
-        if ((j == p.M_cnt + p.M_ox) && (i0 == p.N_sc + p.N_sox + p.N_sg + p.N_g)) {
-            delta = p.N_x - p.N_sc - p.N_dc - p.N_sox - p.N_g - p.N_dox;
-        }
-        if (j >= p.M_cnt + p.M_ox) {
-            if (i0 == p.N_sc + p.N_sox) {
-                i0 = i1 + p.N_g;
-                i1 = i0 + p.N_dg;
-                --j; // repeat i loop for second part (right side of gate)
+        for (int i = 0; i < p.N_x; ++i) {
+            if (dirichlet(i, j)) {
+                set_value(k, k, 1.0);
             } else {
-                i1 = i0 - p.N_g;
-                i0 = i1 - p.N_sg;
+                double C_l = - M_PI * dr_dx * (eps(i - 1, j - 1) * rm  + eps(i - 1, j    ) * rp );
+                double C_r = - M_PI * dr_dx * (eps(i    , j - 1) * rm  + eps(i    , j    ) * rp );
+                double C_i = - M_PI * dx_dr * (eps(i - 1, j - 1) * rmm + eps(i    , j - 1) * rmm);
+                double C_o = - M_PI * dx_dr * (eps(i - 1, j    ) * rpp + eps(i    , j    ) * rpp);
+                double C_s = - (C_l + C_r + C_i + C_o);
+
+                // store values
+                set_value(k, k        , C_s);
+                set_value(k, k - 1    , C_l);
+                set_value(k, k + 1    , C_r);
+                set_value(k, k - p.N_x, C_i);
+                set_value(k, k + p.N_x, C_o);
             }
+            ++k;
         }
     }
 
@@ -518,106 +317,9 @@ const arma::sp_mat & potential::get_S(const device_params & p) {
     indices.resize(2, N_v);
     values.resize(N_v);
 
-    // create, save and return sparse matrix S
-    S[p.name] = sp_mat(indices, values);
-    return S[p.name];
-}
-const std::array<arma::mat, 4> & potential::get_eps(const device_params & p) {
-    // check if eps was already calculated for this geometry
-    static thread_local std::map<std::string, std::array<arma::mat, 4>> eps;
-    auto it = eps.find(p.name);
-    if (it != std::end(eps)) {
-        return it->second;
-    }
-
-    // create new eps
-    using namespace arma;
-    std::array<arma::mat, 4> e;
-
-    for (int i = 0; i < 4; ++i) {
-        e[i] = arma::mat(p.N_x, p.M_r);
-        e[i].fill(c::eps_0);
-    }
-
-    int i, j;
-
-    // cnt
-    for (j = 0; j < p.M_cnt - 1; ++j) {
-        for (i = 0; i < p.N_x; ++i) {
-            e[L](i, j) = p.eps_cnt * c::eps_0;
-            e[R](i, j) = p.eps_cnt * c::eps_0;
-            e[I](i, j) = p.eps_cnt * c::eps_0;
-            e[O](i, j) = p.eps_cnt * c::eps_0;
-        }
-    }
-
-    // cnt border
-    for (i = 0; i < p.N_sc; ++i) {
-        e[L](i, j) = 0.5 * (1.0 + p.eps_cnt) * c::eps_0;
-        e[R](i, j) = 0.5 * (1.0 + p.eps_cnt) * c::eps_0;
-        e[I](i, j) = p.eps_cnt * c::eps_0;
-        e[O](i, j) = c::eps_0;
-    }
-    e[L](i, j) = 0.5 * (1.0 + p.eps_cnt) * c::eps_0;
-    e[R](i, j) = 0.5 * (p.eps_ox + p.eps_cnt) * c::eps_0;
-    e[I](i, j) = p.eps_cnt * c::eps_0;
-    e[O](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
-    for (++i; i < p.N_x - p.N_dc - 1; ++i) {
-        e[L](i, j) = 0.5 * (p.eps_ox + p.eps_cnt) * c::eps_0;
-        e[R](i, j) = 0.5 * (p.eps_ox + p.eps_cnt) * c::eps_0;
-        e[I](i, j) = p.eps_cnt * c::eps_0;
-        e[O](i, j) = p.eps_ox * c::eps_0;
-    }
-    e[L](i, j) = 0.5 * (p.eps_ox + p.eps_cnt) * c::eps_0;
-    e[R](i, j) = 0.5 * (1.0 + p.eps_cnt) * c::eps_0;
-    e[I](i, j) = p.eps_cnt * c::eps_0;
-    e[O](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
-    for (++i; i < p.N_x; ++i) {
-        e[L](i, j) = 0.5 * (1.0 + p.eps_cnt) * c::eps_0;
-        e[R](i, j) = 0.5 * (1.0 + p.eps_cnt) * c::eps_0;
-        e[I](i, j) = p.eps_cnt * c::eps_0;
-        e[O](i, j) = c::eps_0;
-    }
-
-    // oxide
-    for (++j; j < p.M_cnt + p.M_ox - 1; ++j) {
-        i = p.N_sc;
-        e[L](i, j) = c::eps_0;
-        e[R](i, j) = p.eps_ox * c::eps_0;
-        e[I](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
-        e[O](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
-        for (++i; i < p.N_x - p.N_dc - 1; ++i) {
-            e[L](i, j) = p.eps_ox * c::eps_0;
-            e[R](i, j) = p.eps_ox * c::eps_0;
-            e[I](i, j) = p.eps_ox * c::eps_0;
-            e[O](i, j) = p.eps_ox * c::eps_0;
-        }
-        e[L](i, j) = p.eps_ox * c::eps_0;
-        e[R](i, j) = c::eps_0;
-        e[I](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
-        e[O](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
-    }
-
-    // oxide border
-    i = p.N_sc;
-    e[L](i, j) = c::eps_0;
-    e[R](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
-    e[I](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
-    e[O](i, j) = c::eps_0;
-    for (++i; i < p.N_x - p.N_dc - 1; ++i) {
-        e[L](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
-        e[R](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
-        e[I](i, j) = p.eps_ox * c::eps_0;
-        e[O](i, j) = c::eps_0;
-    }
-    e[L](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
-    e[R](i, j) = c::eps_0;
-    e[I](i, j) = 0.5 * (1.0 + p.eps_ox) * c::eps_0;
-    e[O](i, j) = c::eps_0;
-
-    // save and return eps
-    eps[p.name] = e;
-    return eps[p.name];
+    // create, save and return sparse matrix C
+    C[p.name] = sp_mat(indices, values);
+    return C[p.name];
 }
 
 #endif
