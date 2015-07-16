@@ -25,33 +25,16 @@ public:
     inline std::string to_string();
 };
 
-static const geometry test_geometry {
-    10.0, // eps_cnt
-    25.0, // eps_ox
-     0.4, // l_sc
-     0.4, // l_sox
-     0.6, // l_sg
-     0.6, // l_g
-     0.6, // l_dg
-     0.4, // l_dox
-     0.4, // l_dc
-     0.2, // r_cnt
-     0.2, // d_ox
-     0.3, // r_ext
-     0.2, // dx
-     0.1  // dr
-};
-
 static const geometry fet_geometry {
     10.0, // eps_cnt
     25.0, // eps_ox
-     5.0, // l_sc
+    10.0, // l_sc
     22.0, // l_sox
      3.0, // l_sg
     10.0, // l_g
     25.0, // l_dg
      0.0, // l_dox
-     5.0, // l_dc
+    15.0, // l_dc
      1.0, // r_cnt
      2.0, // d_ox
      2.0, // r_ext

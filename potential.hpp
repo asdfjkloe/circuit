@@ -212,7 +212,8 @@ arma::vec potential::get_R(const device_params & p, const arma::vec & R0, const 
     vec R = R0;
 
     // add non-constant part to R0 due to charge_density at the boundary of the cnt
-    R.rows((p.M_cnt - 1) * p.N_x, p.M_cnt * p.N_x - 1) += n.total * p.r_cnt * 1e9; // 10^9 because of m->nm in eps_0
+    //R.rows((p.M_cnt - 1) * p.N_x, p.M_cnt * p.N_x - 1) += n.total * p.r_cnt * 1e9; // 10^9 because of m->nm in eps_0
+    R.rows((p.M_cnt - 1) * p.N_x, p.M_cnt * p.N_x - 1) += n.total;
     return R;
 }
 const arma::sp_mat & potential::get_C(const device_params & p) {
@@ -296,10 +297,10 @@ const arma::sp_mat & potential::get_C(const device_params & p) {
             if (dirichlet(i, j)) {
                 set_value(k, k, 1.0);
             } else {
-                double C_l = - M_PI * dr_dx * (eps(i - 1, j - 1) * rm  + eps(i - 1, j    ) * rp );
-                double C_r = - M_PI * dr_dx * (eps(i    , j - 1) * rm  + eps(i    , j    ) * rp );
-                double C_i = - M_PI * dx_dr * (eps(i - 1, j - 1) * rmm + eps(i    , j - 1) * rmm);
-                double C_o = - M_PI * dx_dr * (eps(i - 1, j    ) * rpp + eps(i    , j    ) * rpp);
+                double C_l = - M_PI * dr_dx * (eps(i - 1, j - 1) * rm  + eps(i - 1, j    ) * rp ) * 1e-9;
+                double C_r = - M_PI * dr_dx * (eps(i    , j - 1) * rm  + eps(i    , j    ) * rp ) * 1e-9;
+                double C_i = - M_PI * dx_dr * (eps(i - 1, j - 1) * rmm + eps(i    , j - 1) * rmm) * 1e-9;
+                double C_o = - M_PI * dx_dr * (eps(i - 1, j    ) * rpp + eps(i    , j    ) * rpp) * 1e-9;
                 double C_s = - (C_l + C_r + C_i + C_o);
 
                 // store values

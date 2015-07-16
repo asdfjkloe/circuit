@@ -99,7 +99,8 @@ charge_density::charge_density(const device_params & p, const potential & phi, a
     };
 
     // scale according to given device geometry
-    double scale = - 0.5 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
+    //double scale = - 0.5 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
+    double scale = - c::e / M_PI;
 
     // calculate integrals (adaptively) and output the energy lattice and weights that were used
     lv = scale * integral(I_l, p.N_x, i_lv, rel_tol, c::epsilon(), E0[LV], W[LV]);
@@ -155,7 +156,8 @@ charge_density::charge_density(const device_params & p, const potential & phi, c
     };
 
     // scaling
-    double scale = - 0.5 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
+    //double scale = - 0.5 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
+    double scale = - c::e / M_PI;
 
     // calculate charge_density for each wave_packet
     lv = scale * get_n(psi[LV]);
@@ -452,7 +454,8 @@ arma::vec charge_density::get_n0(const device_params & p) {
     }
     ret.rows(p.dc.a, p.N_x - 1).fill(nc(1));
 
-    ret *= 2 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
+    //ret *= 2 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
+    ret *= 4 * c::e / M_PI;
 
     // save and return n0
     n0[p.name] = ret;
