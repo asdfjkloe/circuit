@@ -5,7 +5,6 @@
 
 #include "constant.hpp"
 #include "device_params.hpp"
-#include "util/simd/simd.hpp"
 
 class wave_packet {
 public:

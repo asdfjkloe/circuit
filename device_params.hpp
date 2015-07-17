@@ -241,7 +241,7 @@ void device_params::update(const std::string & n_) {
     g    = arma::span( sg.b + 1,  sg.b + N_g  );
     dg   = arma::span(  g.b + 1,   g.b + N_dg );
     dox  = arma::span( dg.b + 1,  dg.b + N_dox);
-    dc   = arma::span(dox.b + 1, dox.b + N_dc);
+    dc   = arma::span(dox.b + 1, dox.b + N_dc );
     sc2  = arma::span( sc.a * 2,  sc.b * 2 + 1);
     sox2 = arma::span(sox.a * 2, sox.b * 2 + 1);
     sg2  = arma::span( sg.a * 2,  sg.b * 2 + 1);

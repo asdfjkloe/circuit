@@ -217,7 +217,7 @@ arma::vec potential::get_R(const device_params & p, const arma::vec & R0, const 
 
     // add non-constant part to R0 due to charge_density at the boundary of the cnt
     //R.rows((p.M_cnt - 1) * p.N_x, p.M_cnt * p.N_x - 1) += n.total * p.r_cnt * 1e9; // 10^9 because of m->nm in eps_0
-    R.rows((p.M_cnt - 1) * p.N_x, p.M_cnt * p.N_x - 1) += n.total;
+    R.rows((p.M_cnt - 1) * p.N_x, p.M_cnt * p.N_x - 1) -= n.total;
     return R;
 }
 const arma::sp_mat & potential::get_C(const device_params & p) {
