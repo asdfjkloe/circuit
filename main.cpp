@@ -33,7 +33,7 @@ using namespace std;
 
 static inline void setup() {
     // disable nested parallelism globally
-    omp_set_nested(1);
+    omp_set_nested(0);
 
     //flush denormal floats to zero for massive speedup
     //(i.e. set bits 15 and 6 in SSE control register MXCSR)
@@ -64,19 +64,8 @@ int main(int argc, char ** argv) {
 //    ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.5}));
 //    ro.save<true>();
 
-    device d("dev", nfet, voltage<3>{0.8, 0.0, 0.0});
-    d.steady_state<true>();
 
-    potential phi_test(d.p, d.V[0]);
-    plot_ldos(d.p, phi_test);
-    plot(d.n[0].total);
-    plot_ldos(d.p, d.phi[0]);
-
-    potential::plot2D(d.p, d.V[0], d.n[0]);
-
-    return 0;
-
-    /*omp_set_num_threads(stoi(argv[1]));
+    omp_set_num_threads(stoi(argv[1]));
 
     device d("prototype", ntfet);
     double l_g = stod(argv[2]);
@@ -88,8 +77,8 @@ int main(int argc, char ** argv) {
     s << d.p.to_string();
     s.close();
 
-    transfer<true>(d.p, {{0, 0.1, -0.4}, {0, 0.2, -0.4}, {0, 0.3, -0.4}}, .4, 1000);
+    transfer<true>(d.p, {{0, 0.05, -0.2}, {0, 0.1, -0.2}, {0, 0.2, -0.2}}, .2, 240);
 
-    return 0;*/
+    return 0;
 }
 
