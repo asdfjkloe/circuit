@@ -59,17 +59,8 @@ bool inverter::steady_state(const voltage<3> & V) {
     auto delta_I = [&] (double V_o) {
         outputs[0]->V = V_o;
 
-//    #pragma omp sections
-//    {
-//        #pragma omp section
-//        n().steady_state();
-
-//        #pragma omp section
-//        p().steady_state();
-//    }
-
-        n().steady_state();
-        p().steady_state();
+    n().steady_state();
+    p().steady_state();
 
         return n().I[0].d() + p().I[0].d();
     };
@@ -81,8 +72,8 @@ bool inverter::steady_state(const voltage<3> & V) {
 
     V_out.resize(1);
     bool converged = brent(delta_I, V[S], V[D], 0.001, V_out[0][0]);
-    std::cout << "V_in = " << V[G] << " -> V_out = " << V_out[0][0];
-    std::cout << (converged ? "" : " ERROR!!!") << std::endl;
+    std::cout << "\nV_in = " << V[G] << " -> V_out = " << V_out[0][0];
+    std::cout << (converged ? "" : " ERROR!!!") << std::endl << std::endl;
 
     return converged;
 }
