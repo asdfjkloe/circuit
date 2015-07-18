@@ -67,7 +67,7 @@ int main(int argc, char ** argv) {
 
 //    omp_set_num_threads(stoi(argv[1]));
 
-    device d("prototype", ntfet);
+//    device d("prototype", ntfet);
 //    double l_g = stod(argv[2]);
 //    d.p.l_g = l_g;
 //    d.p.update("ntfet_lg=" + string(argv[2]));
@@ -83,7 +83,6 @@ int main(int argc, char ** argv) {
 
     inverter inv(ntfet, ptfet, 5e-18);
     vec V_in = linspace(0, 0.1, 300);
-    vec V_out(100);
     for (auto it = V_in.begin(); it != V_in.end(); ++it) {
         inv.steady_state({0, 0.1, *it});
     }

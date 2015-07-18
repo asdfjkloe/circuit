@@ -10,9 +10,9 @@ static inline bool brent(F && f, double a, double b, double tol, double & x0) {
     double f_a = f(a);
     double f_b = f(b);
 
-    if (f_a * f_b >= 0) {
-        return false;
-    }
+//    if (f_a * f_b >= 0) {
+//        return false;
+//    }
 
     if (abs(f_a) < abs(f_b)) {
         // swap a and b, f_a and f_b
