@@ -60,10 +60,11 @@ int main(int argc, char ** argv) {
 //    cout << timer.toc() << endl;
 //    return 0;
 
-//    ring_oscillator<3> ro(nfet, pfet, 5e-17);
-//    ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.5}));
-//    ro.save<true>();
-
+    cout << "saving results in " << save_folder(false, "TFET_RO") << endl;
+    ring_oscillator<3> ro(ntfet, ptfet, 5e-18);
+    ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.1}));
+    ro.save<true>();
+    return 0;
 
 //    omp_set_num_threads(stoi(argv[1]));
 
@@ -81,20 +82,20 @@ int main(int argc, char ** argv) {
 
 //    return 0;
 
-    inverter inv(ntfet, ptfet, 5e-18);
-    int N = 300;
-    vec V_in = linspace(0, .1, N);
-    vec V_out(N);
+//    inverter inv(ntfet, ptfet, 5e-18);
+//    int N = 300;
+//    vec V_in = linspace(0, .1, N);
+//    vec V_out(N);
 
-    for (int i = 0; i < N; ++i) {
-        inv.steady_state({0, 0.1, V_in(i)});
-        V_out(i) = inv.get_output(0)->V;
-    }
+//    for (int i = 0; i < N; ++i) {
+//        inv.steady_state({0, 0.1, V_in(i)});
+//        V_out(i) = inv.get_output(0)->V;
+//    }
 
-    mat ret = join_horiz(V_in, V_out);
-    ret.save("tfet_inverter.csv", csv_ascii);
+//    mat ret = join_horiz(V_in, V_out);
+//    ret.save("tfet_inverter.csv", csv_ascii);
 
-    return 0;
+//    return 0;
 
 
 }

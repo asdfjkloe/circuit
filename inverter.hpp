@@ -71,7 +71,7 @@ bool inverter::steady_state(const voltage<3> & V) {
     inputs[G]->V = V[G];
 
     V_out.resize(1);
-    bool converged = brent(delta_I, V[S], V[D], 0.001, V_out[0][0]);
+    bool converged = brent(delta_I, V[S], V[D], 0.0001, V_out[0][0]);
     std::cout << "\nV_in = " << V[G] << " -> V_out = " << V_out[0][0];
     std::cout << (converged ? "" : " ERROR!!!") << std::endl << std::endl;
 
