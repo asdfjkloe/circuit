@@ -72,21 +72,21 @@ int main(int argc, char ** argv) {
 //    d.p.l_g = l_g;
 //    d.p.update("ntfet_lg=" + string(argv[2]));
 
-    cout << "saving results in " << save_folder(false, "lg=20") << endl;
+//    cout << "saving results in " << save_folder(false, "lg=20") << endl;
 //    ofstream s(save_folder() + "geometry.ini");
 //    s << d.p.to_string();
 //    s.close();
 
-    transfer<true>(d.p, {{0, 0.1, -0.1}}, .1, 240);
+//    transfer<true>(d.p, {{0, 0.1, -0.1}}, .1, 240);
 
 //    return 0;
 
-//    inverter inv(ntfet, ptfet, 5e-18);
-//    vec V_in = linspace(0, 0.1, 100);
-//    vec V_out(100);
-//    for (auto it = V_in.begin(); it != V_in.end(); ++it) {
-//        inv.steady_state({0, 0.1, *it});
-//    }
+    inverter inv(ntfet, ptfet, 5e-18);
+    vec V_in = linspace(0, 0.1, 300);
+    vec V_out(100);
+    for (auto it = V_in.begin(); it != V_in.end(); ++it) {
+        inv.steady_state({0, 0.1, *it});
+    }
 
     return 0;
 
