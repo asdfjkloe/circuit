@@ -48,7 +48,7 @@ static const geometry tfet_geometry {
     10.0, // l_sc
     15.0, // l_sox
      5.0, // l_sg
-    10.0, // l_g
+    20.0, // l_g
     20.0, // l_dg
      0.0, // l_dox
     10.0, // l_dc

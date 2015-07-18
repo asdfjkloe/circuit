@@ -33,7 +33,7 @@ using namespace std;
 
 static inline void setup() {
     // disable nested parallelism globally
-    omp_set_nested(0);
+    omp_set_nested(1);
 
     //flush denormal floats to zero for massive speedup
     //(i.e. set bits 15 and 6 in SSE control register MXCSR)
@@ -65,19 +65,29 @@ int main(int argc, char ** argv) {
 //    ro.save<true>();
 
 
-    omp_set_num_threads(stoi(argv[1]));
+//    omp_set_num_threads(stoi(argv[1]));
 
-    device d("prototype", ntfet);
-    double l_g = stod(argv[2]);
-    d.p.l_g = l_g;
-    d.p.update("ntfet_lg=" + string(argv[2]));
+//    device d("prototype", ntfet);
+//    double l_g = stod(argv[2]);
+//    d.p.l_g = l_g;
+//    d.p.update("ntfet_lg=" + string(argv[2]));
 
-    cout << "saving results in " << save_folder(false, "lg=" + string(argv[2])) << endl;
-    ofstream s(save_folder() + "geometry.ini");
-    s << d.p.to_string();
-    s.close();
+//    cout << "saving results in " << save_folder(false, "lg=" + string(argv[2])) << endl;
+//    ofstream s(save_folder() + "geometry.ini");
+//    s << d.p.to_string();
+//    s.close();
 
-    transfer<true>(d.p, {{0, 0.05, -0.2}, {0, 0.1, -0.2}, {0, 0.2, -0.2}}, .2, 240);
+//    transfer<true>(d.p, {{0, 0.05, -0.2}, {0, 0.1, -0.2}, {0, 0.2, -0.2}}, .2, 240);
+
+//    return 0;
+
+    omp_set_num_threads(12);
+
+    inverter inv(ntfet, ptfet, 5e-18);
+    vec V_in = linspace(0, 0.1, 100);
+    for (auto it = V_in.begin(); it != V_in.end(); ++it) {
+        inv.steady_state({0, 0.1, *it});
+    }
 
     return 0;
 }
