@@ -81,10 +81,15 @@ int main(int argc, char ** argv) {
 
 //    return 0;
 
+    omp_set_nested(stoi(argv[1]));
+    omp_set_num_threads(stoi(argv[2]));
+
     inverter inv(ntfet, ptfet, 5e-18);
-    vec V_in = linspace(0, 0.1, 300);
-    for (auto it = V_in.begin(); it != V_in.end(); ++it) {
-        inv.steady_state({0, 0.1, *it});
+    int N = stoi(argv[3]);
+    vec V_in = linspace(stod(argv[4]), stod(argv[5]), N);
+
+    for (int i = 0; i < N; ++i) {
+        inv.steady_state({0, 0.1, V_in(i)});
     }
 
     return 0;

@@ -5,7 +5,7 @@
 #include "voltage.hpp"
 #include "util/brent.hpp"
 
-class inverter : private circuit<3, 1> {
+class inverter : public circuit<3, 1> {
 public:
     inline inverter(const device_params & n, const device_params & p, double capacitance);
 
@@ -81,8 +81,8 @@ bool inverter::steady_state(const voltage<3> & V) {
 
     V_out.resize(1);
     bool converged = brent(delta_I, V[S], V[D], 0.001, V_out[0][0]);
-    std::cout << "V_out = " << V_out[0][0];
-    std::cout << ", " << (converged ? "" : "ERROR!!!") << std::endl;
+    std::cout << "V_in = " << V[G] << " -> V_out = " << V_out[0][0];
+    std::cout << (converged ? "" : " ERROR!!!") << std::endl;
 
     return converged;
 }
