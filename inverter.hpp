@@ -19,8 +19,6 @@ public:
     using circuit<3, 1>::time_evolution;
     using circuit<3, 1>::save;
 
-    inline arma::vec
-
 private:
     int n_i;
     int p_i;
