@@ -59,17 +59,14 @@ bool inverter::steady_state(const voltage<3> & V) {
     auto delta_I = [&] (double V_o) {
         outputs[0]->V = V_o;
 
-//    #pragma omp sections
-//    {
-//        #pragma omp section
-//        n().steady_state();
-
-//        #pragma omp section
-//        p().steady_state();
-//    }
-
+    #pragma omp sections
+    {
+        #pragma omp section
         n().steady_state();
+
+        #pragma omp section
         p().steady_state();
+    }
 
         return n().I[0].d() + p().I[0].d();
     };
