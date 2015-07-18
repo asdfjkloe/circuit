@@ -41,15 +41,20 @@ ring_oscillator<N>::ring_oscillator(const device_params & n_, const device_param
 
     // link devices
     for (int i = 0; i < N; ++i) {
-        this->link_input(n_i[i], S, S); // to ground
-        this->link_input(p_i[i], S, D); // to V_dd
-        this->link_output(n_i[i], G, (i + N - 1) % N); // to previous output
-        this->link_output(p_i[i], G, (i + N - 1) % N); // to previous output
-        this->link_output(n_i[i], D, i); // to output[i]
-        this->link_output(p_i[i], D, i); // to output[i]
+        // source contacts
+        this->link_input(n_i[i], S, GND); // nfet source to ground
+        this->link_input(p_i[i], S, VDD); // pfet source to to V_dd
+
+        // gate contacts
+        this->link_output(n_i[i], G, (i + N - 1) % N); // nfet gate to previous output
+        this->link_output(p_i[i], G, (i + N - 1) % N); // pfet gate to previous output
+
+        // drain contacts
+        this->link_output(n_i[i], D, i); // nfet drain to output[i]
+        this->link_output(p_i[i], D, i); // pfet drain to output[i]
     }
 
-    // set capacitance
+    // set capacitance (all the same)
     for (int i = 0; i < N; ++i) {
         this->outputs[i]->c = capacitance;
     }
@@ -77,28 +82,32 @@ bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
     // NOTE: there is no steady state for a ring oscillator,
     //       but a self-consistent solution is needed as a starting point for time-evolutions!
     int i;
-    auto delta_I = [&] (double V_o) {
-        n(i).contacts[D]->V = V_o;
+//    auto delta_I = [&] (double V_o) {
+//        n(i).contacts[D]->V = V_o;
 
-        n(i).steady_state();
-        p(i).steady_state();
+//        n(i).steady_state();
+//        p(i).steady_state();
 
-        return n(i).I[0].d() + p(i).I[0].d();
-    };
+//        return n(i).I[0].d() + p(i).I[0].d();
+//    };
 
     // set input voltages
-    this->inputs[S]->V = V[S];
-    this->inputs[D]->V = V[D];
+    this->inputs[GND]->V = V[GND];
+    this->inputs[VDD]->V = V[VDD];
 
     // starting point
-    this->outputs[0]->V = V[S];
+    for (i = 0; i < N; ++i) {
+        this->outputs[i]->V = (0.5 + 0.01 * i) * (V[VDD] - V[GND]);
+    }
 
     // solve each inverter seperately, don't go back to the start
     for (i = 0; i < N; ++i) {
-        double V_o;
-        bool converged = brent(delta_I, V[S], V[D], device::dphi_threshold, V_o);
-        std::cout << "i = " << i << "; V_out = " << V_o;
-        std::cout << (converged ? "" : ", ERROR!!!") << std::endl;
+//        double V_o;
+//        bool converged = brent(delta_I, V[GND], V[VDD], device::dphi_threshold, V_o);
+//        std::cout << "i = " << i << "; V_out = " << V_o;
+//        std::cout << (converged ? "" : ", ERROR!!!") << std::endl;
+        n(i).contacts[D]->V = 0.5 * (V[VDD] - V[GND]); // p(i) has the same drain-contact pointer...
+        bool converged = n(i).steady_state() && p(i).steady_state();
         if (!converged) {
             return false;
         }

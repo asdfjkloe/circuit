@@ -30,15 +30,17 @@ inverter::inverter(const device_params & n, const device_params & p, double capa
     n_i = add_device(n.name, n);
     p_i = add_device(p.name, p);
 
-    // link devices
-    link_input(n_i, S, S);  // to ground
-    link_input(n_i, G, G);  // to V_in
-    link_output(n_i, D, 0); // to V_out
-    link_input(p_i, S, D);  // to V_dd
-    link_input(p_i, G, G);  // to V_in
-    link_output(p_i, D, 0); // to V_out
+    // link nfet
+    link_input(n_i, S, GND);  // source to ground
+    link_input(n_i, G, VIN);  // gate to V_in
+    link_output(n_i, D, 0); // drain to V_out
 
-    // set capacitance
+    // link pfet
+    link_input(p_i, S, VDD);  // source to V_dd
+    link_input(p_i, G, VIN);  // gate to V_in
+    link_output(p_i, D, 0); // drain to V_out
+
+    // set output capacitance
     outputs[0]->c = capacitance;
 }
 
@@ -66,13 +68,13 @@ bool inverter::steady_state(const voltage<3> & V) {
     };
 
     // set input voltages
-    inputs[S]->V = V[S];
-    inputs[D]->V = V[D];
-    inputs[G]->V = V[G];
+    inputs[GND]->V = V[GND];
+    inputs[VDD]->V = V[VDD];
+    inputs[VIN]->V = V[VIN];
 
     V_out.resize(1);
-    bool converged = brent(delta_I, V[S], V[D], 0.0001, V_out[0][0]);
-    std::cout << "\nV_in = " << V[G] << " -> V_out = " << V_out[0][0];
+    bool converged = brent(delta_I, V[GND], V[VDD], 0.0001, V_out[0][0]);
+    std::cout << "\nV_in = " << V[VIN] << " -> V_out = " << V_out[0][0];
     std::cout << (converged ? "" : " ERROR!!!") << std::endl << std::endl;
 
     return converged;
