@@ -33,7 +33,7 @@ using namespace std;
 
 static inline void setup() {
     // disable nested parallelism globally
-    omp_set_nested(0);
+    omp_set_nested(1);
 
     //flush denormal floats to zero for massive speedup
     //(i.e. set bits 15 and 6 in SSE control register MXCSR)
@@ -60,6 +60,7 @@ int main(int argc, char ** argv) {
 //    cout << timer.toc() << endl;
 //    return 0;
 
+    omp_set_num_threads(18);
     cout << "saving results in " << save_folder(false, "TFET_RO") << endl;
     ring_oscillator<3> ro(ntfet, ptfet, 5e-18);
     ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.1}));
