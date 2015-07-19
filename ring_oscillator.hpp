@@ -82,32 +82,33 @@ bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
     // NOTE: there is no steady state for a ring oscillator,
     //       but a self-consistent solution is needed as a starting point for time-evolutions!
     int i;
-//    auto delta_I = [&] (double V_o) {
-//        n(i).contacts[D]->V = V_o;
+    auto delta_I = [&] (double V_o) {
+        n(i).contacts[D]->V = V_o;
 
-//        n(i).steady_state();
-//        p(i).steady_state();
+        n(i).steady_state();
+        p(i).steady_state();
 
-//        return n(i).I[0].d() + p(i).I[0].d();
-//    };
+        return n(i).I[0].d() + p(i).I[0].d();
+    };
 
     // set input voltages
     this->inputs[GND]->V = V[GND];
     this->inputs[VDD]->V = V[VDD];
 
-    // starting point
-    for (i = 0; i < N; ++i) {
-        this->outputs[i]->V = (0.5 + 0.01 * i) * (V[VDD] - V[GND]);
-    }
+    // starting point: 1/2 operating voltage
+    this->outputs[0]->V = (0.5 + 0.01) * (V[VDD] - V[GND]);
+//    for (i = 0; i < N; ++i) {
+//        this->outputs[i]->V = (0.5 + 0.01 * i) * (V[VDD] - V[GND]);
+//    }
 
     // solve each inverter seperately, don't go back to the start
     for (i = 0; i < N; ++i) {
-//        double V_o;
-//        bool converged = brent(delta_I, V[GND], V[VDD], device::dphi_threshold, V_o);
-//        std::cout << "i = " << i << "; V_out = " << V_o;
-//        std::cout << (converged ? "" : ", ERROR!!!") << std::endl;
-        n(i).contacts[D]->V = 0.5 * (V[VDD] - V[GND]); // p(i) has the same drain-contact pointer...
-        bool converged = n(i).steady_state() && p(i).steady_state();
+        double V_o;
+        bool converged = brent(delta_I, V[GND], V[VDD], device::dphi_threshold, V_o);
+        std::cout << "i = " << i << "; V_out = " << V_o;
+        std::cout << (converged ? "" : ", ERROR!!!") << std::endl;
+//        n(i).contacts[D]->V = 0.5 * (V[VDD] - V[GND]); // p(i) has the same drain-contact pointer...
+//        bool converged = n(i).steady_state() && p(i).steady_state();
         if (!converged) {
             return false;
         }
