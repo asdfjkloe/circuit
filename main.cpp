@@ -62,7 +62,7 @@ int main(int argc, char ** argv) {
 
     omp_set_num_threads(18);
     cout << "saving results in " << save_folder(false, "TFET_RO") << endl;
-    ring_oscillator<3> ro(ntfet, ptfet, 5e-18);
+    ring_oscillator<3> ro(ntfet, ptfet, 1e-18);
     ro.time_evolution(signal<2>(1e-10, voltage<2>{0.0, 0.1}));
     ro.save<true>();
     return 0;
