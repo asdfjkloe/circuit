@@ -61,7 +61,7 @@ static inline void trans (int argc, char ** argv) {
 
     device d("prototype", ntype);
     d.p.l_g = l_g;
-    d.p.update(ss.str());
+    d.p.update("updated");
 
     transfer<true>(d.p, {{0, Vd, Vg0}}, Vg1, N);
 
@@ -85,7 +85,7 @@ static inline void outp (int argc, char ** argv) {
 
     device d("prototype", ntype);
     d.p.l_g = l_g;
-    d.p.update(ss.str());
+    d.p.update("updated");
 
     output<true>(d.p, {{0, Vd0, Vg}}, Vd1, N);
 
@@ -110,10 +110,11 @@ static void inv (int argc, char ** argv) {
     double step  = span_tot / N;
     double start = (part - 1) * span_part + Vin0;
     double end   = part       * span_part + Vin0 - step;
-    vec V_in = linspace(start, end, N);
+    int    npart = N / parts;
+    vec V_in = linspace(start, end, npart);
     vec V_out(N);
 
-    for (int i = 0; i < N; ++i) {
+    for (int i = 0; i < npart; ++i) {
         inv.steady_state({0, V_dd, V_in(i)});
         V_out(i) = inv.get_output(0)->V;
     }

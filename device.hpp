@@ -590,7 +590,7 @@ static arma::mat transfer(const device_params & p, const std::vector<voltage<3>>
     arma::mat ret = curve<G>(p, V0, V_g1, N);
 
     if (save) {
-        ret.save(save_folder() + "/" + p.name + "_transfer.csv", arma::csv_ascii);
+        ret.save(save_folder() + "/transfer.csv", arma::csv_ascii);
     }
     return ret;
 }
@@ -600,7 +600,7 @@ static arma::mat output(const device_params & p, const std::vector<voltage<3>> &
     arma::mat ret = curve<D>(p, V0, V_d1, N);
 
     if (save) {
-        ret.save(save_folder() + "/" + p.name + "_output.csv", arma::csv_ascii);
+        ret.save(save_folder() + "/output.csv", arma::csv_ascii);
     }
     return ret;
 }
