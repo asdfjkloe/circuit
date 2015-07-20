@@ -31,10 +31,10 @@ Vdd=.1
 Vin0=0
 Vin1=$Vdd
 
-for part in 1 2 3 4 5
+for part in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 do
   sim_name="inv_part$part"
-  bsub -W 400 -M 120 -a "bcs openmp" -n $nthreads -J $sim_name -o logfiles/"$sim_name.log" $env_stuff ./circuit $nthreads inv $Vin0 $Vin1 $Vdd $N $part 5 $
+  bsub -W 200 -M 100 -a "bcs openmp" -n $nthreads -J $sim_name -o logfiles/"$sim_name.log" $env_stuff ./circuit $nthreads inv $Vin0 $Vin1 $Vdd $N $part 5 $
 done
 
 

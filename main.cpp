@@ -1,5 +1,5 @@
-//#define ARMA_NO_DEBUG // no bound checks
-//#define GNUPLOT_NOPLOTS
+#define ARMA_NO_DEBUG // no bound checks
+#define GNUPLOT_NOPLOTS
 
 #include <armadillo>
 #include <iostream>
@@ -111,17 +111,19 @@ static void inv (int argc, char ** argv) {
     double start = (part - 1) * span_part + Vin0;
     double end   = part       * span_part + Vin0 - step;
     int    npart = N / parts;
-    vec V_in = linspace(start, end, npart);
-    vec V_out(N);
-
-    for (int i = 0; i < npart; ++i) {
-        inv.steady_state({0, V_dd, V_in(i)});
-        V_out(i) = inv.get_output(0)->V;
-    }
 
     stringstream ss;
     ss << "ntd_inverter/Vdd=" << V_dd << "_part" << part;
     cout << "saving results in " << save_folder(true, ss.str()) << endl;
+
+    vec V_in = linspace(start, end, npart);
+    vec V_out(N);
+
+    for (int i = 0; i < npart; ++i) {
+        cout << "(" << i << "/" << npart << "): ";
+        inv.steady_state({0, V_dd, V_in(i)});
+        V_out(i) = inv.get_output(0)->V;
+    }
 
     mat ret = join_horiz(V_in, V_out);
     ret.save(save_folder() + "/inverter_curve.csv", csv_ascii);
