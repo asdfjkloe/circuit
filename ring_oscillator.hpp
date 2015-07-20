@@ -95,11 +95,8 @@ bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
     this->inputs[GND]->V = V[GND];
     this->inputs[VDD]->V = V[VDD];
 
-    // starting point: 1/2 operating voltage
-    this->outputs[0]->V = (0.5 + 0.01) * (V[VDD] - V[GND]);
-//    for (i = 0; i < N; ++i) {
-//        this->outputs[i]->V = (0.5 + 0.01 * i) * (V[VDD] - V[GND]);
-//    }
+    // starting point: 1/2 operating voltage + small deviation
+    this->outputs[2]->V = .5005  * (V[VDD] - V[GND]);
 
     // solve each inverter seperately, don't go back to the start
     for (i = 0; i < N; ++i) {
@@ -107,8 +104,6 @@ bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
         bool converged = brent(delta_I, V[GND], V[VDD], device::dphi_threshold, V_o);
         std::cout << "i = " << i << "; V_out = " << V_o;
         std::cout << (converged ? "" : ", ERROR!!!") << std::endl;
-//        n(i).contacts[D]->V = 0.5 * (V[VDD] - V[GND]); // p(i) has the same drain-contact pointer...
-//        bool converged = n(i).steady_state() && p(i).steady_state();
         if (!converged) {
             return false;
         }
