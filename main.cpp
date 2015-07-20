@@ -97,13 +97,20 @@ static inline void outp (int argc, char ** argv) {
 static void inv (int argc, char ** argv) {
     // starts a static inverter simulation
 
-    double Vin0 = stod(argv[3]);
-    double Vin1 = stod(argv[4]);
-    double V_dd = stod(argv[5]);
-    int    N    = stoi(argv[6]);
+    double Vin0  = stod(argv[3]);
+    double Vin1  = stod(argv[4]);
+    double V_dd  = stod(argv[5]);
+    int    N     = stoi(argv[6]);
+    int    part  = stoi(argv[7]);
+    int    parts = stoi(argv[8]);
 
     inverter inv(ntype, ptype);
-    vec V_in = linspace(Vin0, Vin1, N);
+    double span_tot = Vin1 - Vin0;
+    double span_part = span_tot / parts;
+    double step  = span_tot / N;
+    double start = (part - 1) * span_part + Vin0;
+    double end   = part       * span_part + Vin0 - step;
+    vec V_in = linspace(start, end, N);
     vec V_out(N);
 
     for (int i = 0; i < N; ++i) {
@@ -112,7 +119,7 @@ static void inv (int argc, char ** argv) {
     }
 
     stringstream ss;
-    ss << "ntd_inverter/V=" << V_dd;
+    ss << "ntd_inverter/Vdd=" << V_dd << "_part" << part;
     cout << "saving results in " << save_folder(true, ss.str()) << endl;
 
     mat ret = join_horiz(V_in, V_out);

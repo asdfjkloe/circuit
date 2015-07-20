@@ -1,15 +1,41 @@
-#!/usr/bin/env /bin/zsh
+#!/bin/zsh
 
-for f in 100 50
+env_stuff="LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/fm093026/local_usr/lib"
+
+nthreads=8
+N=2000
+
+Vd0=0
+Vd1=.3
+
+Vg0=-.3
+Vg1=.3
+
+for lg in 5 10 20 40 60
 do
-  T=$(expr 80000 / $f)
-  mkdir -p logfiles
-  sim_name_g=NFET_sine_gate_"$f"GHz
-  echo submitting job $sim_name_g
-  echo estimated time: $T minutes
-  bsub -u "fabian.motzfeld@rwth-aachen.de" -B -N -W $T -M 4000 -a "bcs openmp" -n 64,64 -J $sim_name_g -o logfiles/$sim_name_g.log LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/fm093026/local_usr/lib ./2D_Poisson 64 $f 1
-  #sim_name_d=TFET_sine_drain_"$f"GHz
-  #echo submitting job $sim_name_d
-  #echo estimated time: $T minutes
-  #bsub -u "fabian.motzfeld@rwth-aachen.de" -B -N -W $T -M 4000 -a "bcs openmp" -n 64,64 -J $sim_name_d -o logfiles/$sim_name_d.log LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/fm093026/local_usr/lib ./2D_Poisson 64 $f 2
+  for Vg in .05 .1 .15 .2 .25 .3
+  do
+    sim_name="outp:lg=$lg,Vg=$Vg"
+    bsub -W 40 -M 600 -a "bcs openmp" -n $nthreads -J $sim_name -o logfiles/$sim_name.log $env_stuff ./circuit $nthreads outp $lg $Vd0 $Vd1 $Vg $N
+  done
+
+  for Vd in .05 .1 .15 .2 .25 .3
+  do
+    sim_name="trans:lg=$lg,Vd=$Vd"
+    bsub -W 40 -M 600 -a "bcs openmp" -n $nthreads -J $sim_name -o logfiles/$sim_name.log $env_stuff ./circuit $nthreads trans $lg $Vg0 $Vg1 $Vd $N
+  done
 done
+
+N=1000
+Vdd=.1
+Vin0=0
+Vin1=$Vdd
+
+for part in 1 2 3 4 5
+do
+  sim_name="inv_part$part"
+  bsub -W 400 -M 120 -a "bcs openmp" -n $nthreads -J $sim_name -o logfiles/"$sim_name.log" $env_stuff ./circuit $nthreads inv $Vin0 $Vin1 $Vdd $N $part 5 $
+done
+
+
+
