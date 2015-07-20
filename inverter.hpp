@@ -7,7 +7,7 @@
 
 class inverter : public circuit<3, 1> {
 public:
-    inline inverter(const device_params & n, const device_params & p, double capacitance);
+    inline inverter(const device_params & n, const device_params & p, double capacitance = c::inf);
 
     inline const device & n() const;
     inline device & n();

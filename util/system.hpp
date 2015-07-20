@@ -28,7 +28,7 @@ static inline const std::string & save_folder(bool timestamp = true, const std::
     static std::string folder;
 
     if (folder.empty()) {
-        folder = std::string(std::getenv("HOME")) + "/simulation_results/" + prefix + (timestamp ? "_" + now() : "");
+        folder = std::string(std::getenv("HOME")) + "/simulation_results/" + prefix + (timestamp ? "_started:" + now() : "");
         system("mkdir -p " + folder);
     }
 
