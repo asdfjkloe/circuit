@@ -114,13 +114,14 @@ static void inv (int argc, char ** argv) {
 
     stringstream ss;
     ss << "ntd_inverter/Vdd=" << V_dd << "_part" << part;
+    cout << "inverter curve; part " << part << " of " << parts << endl;
     cout << "saving results in " << save_folder(true, ss.str()) << endl;
 
     vec V_in = linspace(start, end, npart);
     vec V_out(N);
 
     for (int i = 0; i < npart; ++i) {
-        cout << "(" << i << "/" << npart << "): ";
+        cout << "\nstep " << i+1 << "/" << npart << ": \n";
         inv.steady_state({0, V_dd, V_in(i)});
         V_out(i) = inv.get_output(0)->V;
     }
