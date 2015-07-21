@@ -52,11 +52,6 @@ static inline arma::mat get_lDOS(const device_params & p, const potential & phi,
 
     mat ret(N_grid, p.N_x);
 
-    double phi_min = min(phi.data);
-    double phi_max = max(phi.data);
-
-    E = linspace(phi_min - 0.5 * p.E_g - 0.2, phi_max + 0.5 * p.E_g + 0.2, N_grid);
-
     #pragma omp parallel for schedule(static)
     for (int i = 0; i < N_grid; ++i) {
         cx_double Sigma_s;
@@ -77,8 +72,10 @@ static inline arma::mat get_lDOS(const device_params & p, const potential & phi,
     return ret;
 }
 
-static inline void plot_ldos(const device_params & p, const potential & phi, const unsigned N_grid = 1000) {
+static inline void plot_ldos(const device_params & p, const potential & phi, const unsigned N_grid = 1000, double Emin = -1, double Emax = +1) {
     gnuplot gp;
+
+    arma::vec E = arma::linspace(Emin, Emax, N_grid);
 
     gp << "set title \"Logarithmic lDOS\"\n";
     gp << "set xlabel \"x / nm\"\n";
@@ -89,7 +86,6 @@ static inline void plot_ldos(const device_params & p, const potential & phi, con
 //    gp << "set terminal pdf rounded color enhanced font 'arial,12'\n";
 //    gp << "set output 'lDOS.pdf'\n";
 
-    arma::vec E;
     arma::mat lDOS = get_lDOS(p, phi, N_grid, E);
     gp.set_background(p.x, E, arma::log(lDOS));
 

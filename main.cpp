@@ -1,5 +1,5 @@
 #define ARMA_NO_DEBUG // no bound checks
-#define GNUPLOT_NOPLOTS
+//#define GNUPLOT_NOPLOTS
 
 #include <armadillo>
 #include <iostream>
@@ -46,7 +46,7 @@ static inline void setup() {
 }
 
 
-static inline void trans (int argc, char ** argv) {
+static inline void trans (char ** argv) {
     // starts transfer-curve simulations with a certain gate-length
 
     double l_g = stod(argv[3]);
@@ -70,7 +70,7 @@ static inline void trans (int argc, char ** argv) {
     s.close();
 }
 
-static inline void outp (int argc, char ** argv) {
+static inline void outp (char ** argv) {
     // starts output-curve simulations with a certain gate-length
 
     double l_g = stod(argv[3]);
@@ -94,7 +94,7 @@ static inline void outp (int argc, char ** argv) {
     s.close();
 }
 
-static void inv (int argc, char ** argv) {
+static void inv (char ** argv) {
     // starts a static inverter simulation
 
     double Vin0  = stod(argv[3]);
@@ -138,7 +138,7 @@ static void inv (int argc, char ** argv) {
     sp.close();
 }
 
-static inline void ro (int argc, char ** argv) {
+static inline void ro (char ** argv) {
     // starts a transient ring-oscillator simulation
     double T = stod(argv[3]);
     double C = stod(argv[4]);
@@ -161,6 +161,22 @@ static inline void ro (int argc, char ** argv) {
     sp.close();
 }
 
+static inline void ldos(char ** argv) {
+    double vd = stod(argv[3]);
+    double vg = stod(argv[4]);
+    double Emin = stod(argv[5]);
+    double Emax = stod(argv[6]);
+
+    device dev("test", ntype, voltage<3>{0, vd, vg});
+    dev.steady_state();
+
+    plot_ldos(dev.p, dev.phi[0], 2000, Emin, Emax);
+}
+
+static inline void test(char ** argv) {
+
+}
+
 int main(int argc, char ** argv) {
     setup();
 
@@ -170,14 +186,21 @@ int main(int argc, char ** argv) {
 
     // second argument chooses the type of simulation
     string stype(argv[2]);
-    if (stype == "trans") {
-        trans(argc, argv);
-    } else if (stype == "outp") {
-        outp(argc, argv);
-    } else if (stype == "inv") {
-        inv(argc, argv);
-    } else if (stype == "ro") {
-        ro(argc, argv);
+    if (stype == "trans" && argc == 8) {
+        trans(argv);
+    } else if (stype == "outp" && argc == 8) {
+        outp(argv);
+    } else if (stype == "inv" && argc == 9) {
+        inv(argv);
+    } else if (stype == "ro" && argc == 6) {
+        ro(argv);
+    } else if (stype == "ldos" && argc == 7) {
+        ldos(argv);
+    } else if (stype == "test") {
+        test(argv);
+    }
+    else {
+        cout << "wrong number of arguments or unknown simulation type" << endl;
     }
 
     return 0;

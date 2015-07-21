@@ -45,17 +45,17 @@ static const geometry fet_geometry {
 static const geometry tfet_geometry {
     10.0, // eps_cnt
     25.0, // eps_ox
-    10.0, // l_sc
+     7.0, // l_sc
     15.0, // l_sox
      5.0, // l_sg
     20.0, // l_g
     20.0, // l_dg
      0.0, // l_dox
-    10.0, // l_dc
+     7.0, // l_dc
      1.0, // r_cnt
      2.0, // d_ox
      2.0, // r_ext
-     0.2, // dx
+     0.3, // dx
      0.1  // dr
 };
 
