@@ -96,7 +96,9 @@ bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
     this->inputs[VDD]->V = V[VDD];
 
     // starting point: 1/2 operating voltage + small deviation
-    this->outputs[2]->V = .505  * (V[VDD] - V[GND]);
+    this->outputs[2]->V = (.5 - .02)  * (V[VDD] - V[GND]);
+
+
 
     // solve each inverter seperately, don't go back to the start
     for (i = 0; i < N; ++i) {
