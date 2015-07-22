@@ -171,6 +171,7 @@ static inline void ldos(char ** argv) {
     dev.steady_state();
 
     plot_ldos(dev.p, dev.phi[0], 2000, Emin, Emax);
+    potential::plot2D(dev.p, {0, vd, vg}, dev.n[0]);
 }
 
 static inline void test(char ** argv) {

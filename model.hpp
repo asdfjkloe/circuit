@@ -57,9 +57,9 @@ static const model pfet_model {
 
 static const model ntfet_model {
     0.62,             // E_g
-    0.04 * c::m_e,    // m_eff
+    0.02 * c::m_e,    // m_eff
     0.62,             // E_gc
-    0.04 * c::m_e,    // m_efc
+    0.02 * c::m_e,    // m_efc
 //    0.30,             // E_gc
 //    0.10 * c::m_e,    // m_efc
     {
