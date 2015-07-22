@@ -5,12 +5,6 @@
 #include "voltage.hpp"
 #include "signal.hpp"
 
-enum {
-    GND = 0,
-    VDD = 1,
-    VIN = 2
-};
-
 template<ulint N_in, ulint N_out>
 class circuit {
 public:

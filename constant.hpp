@@ -32,6 +32,11 @@ enum {
 };
 
 enum {
+    GND = 0,
+    VDD = 1
+};
+
+enum {
     LV = 0,
     RV = 1,
     LC = 2,
