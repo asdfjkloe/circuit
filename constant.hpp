@@ -33,7 +33,8 @@ enum {
 
 enum {
     GND = 0,
-    VDD = 1
+    VDD = 1,
+    VIN = 2
 };
 
 enum {
