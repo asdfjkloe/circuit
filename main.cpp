@@ -113,12 +113,15 @@ static void inv (char ** argv) {
     int    npart = N / parts;
 
     stringstream ss;
-    ss << "ntd_inverter/Vdd=" << V_dd << "_part" << part;
+    ss << "Vdd=" << V_dd;
     cout << "inverter curve; part " << part << " of " << parts << endl;
-    cout << "saving results in " << save_folder(true, ss.str()) << endl;
+
+    // ntd-inverter folders dont't have timestamps to simplify merging of parts!
+    // Data with same Vdd will be OVERWRITTEN!
+    cout << "saving results in " << save_folder(false, "ntd_inverter/" + ss.str()) << endl;
 
     vec V_in = linspace(start, end, npart);
-    vec V_out(N);
+    vec V_out(npart);
 
     for (int i = 0; i < npart; ++i) {
         cout << "\nstep " << i+1 << "/" << npart << ": \n";
@@ -127,7 +130,8 @@ static void inv (char ** argv) {
     }
 
     mat ret = join_horiz(V_in, V_out);
-    ret.save(save_folder() + "/inverter_curve.csv", csv_ascii);
+    ss << "_part" << part;
+    ret.save(save_folder() + "/inv_" + ss.str() + ".csv", csv_ascii);
 
     ofstream sn(save_folder() + "/parameters_ntype.ini");
     sn << ntype.to_string();
