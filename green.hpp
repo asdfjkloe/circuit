@@ -72,7 +72,7 @@ static inline arma::mat get_lDOS(const device_params & p, const potential & phi,
     return ret;
 }
 
-static inline void plot_ldos(const device_params & p, const potential & phi, const unsigned N_grid = 1000, double Emin = -1, double Emax = +1) {
+static inline void plot_ldos(const device_params & p, const potential & phi, const unsigned N_grid = 500, double Emin = -1, double Emax = +1) {
     gnuplot gp;
 
     arma::vec E = arma::linspace(Emin, Emax, N_grid);

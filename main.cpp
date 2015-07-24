@@ -186,6 +186,16 @@ static inline void ldos(char ** argv) {
     dev.steady_state();
 
     plot_ldos(dev.p, dev.phi[0], 2000, Emin, Emax);
+}
+
+static inline void pot(char ** argv) {
+    double vd = stod(argv[3]);
+    double vg = stod(argv[4]);
+
+    device dev("test", ntype, voltage<3>{0, vd, vg});
+    dev.steady_state();
+
+    plot(make_pair(dev.p.x, dev.phi[0].data));
     potential::plot2D(dev.p, {0, vd, vg}, dev.n[0]);
 }
 
@@ -214,6 +224,8 @@ int main(int argc, char ** argv) {
         ro(argv);
     } else if (stype == "ldos" && argc == 7) {
         ldos(argv);
+    } else if (stype == "pot" && argc == 5) {
+        pot(argv);
     } else if (stype == "test") {
         test(argv);
     } else {
