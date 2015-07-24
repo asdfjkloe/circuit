@@ -216,8 +216,7 @@ int main(int argc, char ** argv) {
         ldos(argv);
     } else if (stype == "test") {
         test(argv);
-    }
-    else {
+    } else {
         cout << "wrong number of arguments or unknown simulation type" << endl;
     }
 
