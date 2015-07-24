@@ -96,7 +96,7 @@ bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
     this->inputs[VDD]->V = V[VDD];
 
     // starting point: 1/2 operating voltage + small deviation
-    this->outputs[2]->V = (.5 - 1e-9)  * (V[VDD] - V[GND]);
+    this->outputs[2]->V = (.5 - 1e-7)  * (V[VDD] - V[GND]);
 
 
 
