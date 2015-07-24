@@ -96,7 +96,8 @@ bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
     this->inputs[VDD]->V = V[VDD];
 
     // starting point: 1/2 operating voltage + small deviation
-    this->outputs[N-1]->V = (.5 - 1e-4)  * (V[VDD] - V[GND]);
+    static constexpr double kick = 1e-3;
+    this->outputs[N-1]->V = (.5 + kick)  * (V[VDD] - V[GND]);
 
     // solve each inverter seperately, don't go back to the start
     for (i = 0; i < N; ++i) {
@@ -107,6 +108,11 @@ bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
         if (!converged) {
             return false;
         }
+    }
+    
+    // single inverter RO needs the kick again, as it always converges towards Vdd/2
+    if (N == 1) {
+        this->outputs[N-1]->V = (.5 + kick)  * (V[VDD] - V[GND]);
     }
 
     // save output voltage
