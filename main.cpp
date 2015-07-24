@@ -162,7 +162,7 @@ static inline void ro (char ** argv) {
     ss << "ring_oscillator/" << "C=" << C << "_Vdd=" << V_dd;
     cout << "saving results in " << save_folder(true, ss.str()) << endl;
 
-    ring_oscillator<1> ro(ntype, ptype, C);
+    ring_oscillator<3> ro(ntype, ptype, C);
     ro.time_evolution(signal<2>(T, voltage<2>{0.0, V_dd}));
     ro.save<true>();
 
