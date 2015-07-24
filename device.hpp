@@ -20,7 +20,7 @@
 
 class device {
 public:
-    static constexpr double dphi_threshold = 1e-9; // convergence threshold for dphi
+    static constexpr double dphi_threshold = 1e-12; // convergence threshold for dphi
     static constexpr int max_iterations = 50;      // maximum number of iterations before abortion
     static constexpr unsigned mem = 2000;          // maximum length of the memory integral
 
@@ -82,16 +82,8 @@ private:
     arma::cx_mat old_L;
     arma::cx_mat cx_eye;
 
-//    arma::cx_vec U_eff; // row-major
-//    arma::cx_vec A;
-//    arma::cx_vec A2;
-
     // precalculate the (solely geometry-dependent) q-values
     inline void calc_q();
-
-    // calculate propagator
-//    using cx_double = arma::cx_double;
-//    inline void calc_U_eff(const cx_double * A, const cx_double * A2, const cx_double * B, const cx_double * C, int N, cx_double * U);
 };
 
 template<bool mark_diverged = true>
@@ -274,25 +266,17 @@ bool device::time_step() {
     for (it = 0; it < max_iterations; ++it) {
 
         // diagonal of H with self-energy
-//        arma::cx_vec diag = conv_to<cx_vec>::from(0.5 * (phi[m].twice + phi[m - 1].twice));
-//        diag(            0) -= 1i * g * q(0, S);
-//        diag(2 * p.N_x - 1) -= 1i * g * q(0, D);
         H_eff.diag() = conv_to<cx_vec>::from(0.5 * (phi[m].twice + phi[m - 1].twice));
         H_eff(            0,             0) -= 1i * g * q(0, S);
         H_eff(2 * p.N_x - 1, 2 * p.N_x - 1) -= 1i * g * q(0, D);
 
         // crank-nicolson propagator
         cx_mat U_eff = solve(cx_eye + 1i * g * H_eff, cx_eye - 1i * g * H_eff);
-//        arma::cx_vec B = 1.0 + 1i * g * diag;
-//        arma::cx_vec C = 1.0 - 1i * g * diag;
-//        calc_U_eff(A.memptr(), A2.memptr(), B.memptr(), C.memptr(), 2 * p.N_x, U_eff.memptr());
 
         // inv
         cx_mat inv(2 * p.N_x, 2);
         inv.col(S) = inverse_col< true>(cx_vec(1i * g * p.t_vec), cx_vec(1.0 + 1i * g * H_eff.diag()));
         inv.col(D) = inverse_col<false>(cx_vec(1i * g * p.t_vec), cx_vec(1.0 + 1i * g * H_eff.diag()));
-//        inv.col(S) = inverse_col< true>(A, B);
-//        inv.col(D) = inverse_col<false>(A, B);
 
         // u
         u(m - 1, S) = 0.5 * (phi[m].s() + phi[m - 1].s()) - phi[0].s();
@@ -512,31 +496,6 @@ void device::calc_q() {
     }
     std::cout << "done!" << std::endl;
 }
-
-//void device::calc_U_eff(const cx_double * A, const cx_double * A2, const cx_double * B, const cx_double * C, int N, cx_double * U) {
-//    cx_double b[N];
-
-//    // L-U
-//    b[0] = 1.0 / B[0];
-//    for (int i = 1; i < N; ++i) {
-//        b[i] = 1.0 / (B[i] - b[i - 1] * A2[i - 1]);
-//    }
-
-//    U[(N - 1) * c::bw] = b[N - 1] * C[N - 1] + b[N - 2] * b[N - 1] * A2[N - 2];
-
-//    for (int i = N - 2; i >= 0; --i) {
-//        cx_double t = ((i > 0) ? (b[i - 1] * A2[i - 1]) : 0.0) + C[i];
-//        U[i * c::bw    ] =   b[i] * (b[i + 1] * A2[i] * (t * b[i] + 1.0) + t);
-//        U[i * c::bw + 1] = - b[i] * A[i] * (U[(i + 1) * c::bw] + 1.0);
-
-//        int j1 = (i > N - c::bw) ? (N - i) : c::bw;
-//        for (int j = 2; j < j1; ++j) {
-//            U[i * c::bw + j] = - b[i] * A[i] * U[(i + 1) * c::bw + (j - 1)];
-//        }
-
-//        b[i] = b[i] * b[i] * A2[i] * b[i + 1] + b[i];
-//    }
-//}
 
 template<bool mark_diverged>
 static std::vector<current> curve(const device_params & p, const std::vector<voltage<3>> & V) {

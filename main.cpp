@@ -45,6 +45,17 @@ static inline void setup() {
     _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 }
 
+static inline void point (char ** argv) {
+    // computes the current for a given voltage point
+
+    double vs = stod(argv[3]);
+    double vd = stod(argv[4]);
+    double vg = stod(argv[5]);
+
+    device d("ntype", ntype, {vs, vd, vg});
+    d.steady_state();
+    cout << "I = " << d.I[0].total[0] << std::endl;
+}
 
 static inline void trans (char ** argv) {
     // starts transfer-curve simulations with a certain gate-length
@@ -191,7 +202,9 @@ int main(int argc, char ** argv) {
 
     // second argument chooses the type of simulation
     string stype(argv[2]);
-    if (stype == "trans" && argc == 8) {
+    if (stype == "point" && argc == 6) {
+        point(argv);
+    } else if (stype == "trans" && argc == 8) {
         trans(argv);
     } else if (stype == "outp" && argc == 8) {
         outp(argv);

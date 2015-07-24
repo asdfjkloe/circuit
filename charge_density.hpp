@@ -19,7 +19,7 @@ public:
     // adaptive integration parameters
     static constexpr double E_min = -1.3;         // relative to potential
     static constexpr double E_max = +1.3;         // relative to potential
-    static constexpr double rel_tol = 2e-3;       // subdivide an interval as long as the relative deviation is larger
+    static constexpr double rel_tol = 1e-3;       // subdivide an interval as long as the relative deviation is larger
     static constexpr int initial_waypoints = 300; // divide into at least this number of smaller intervalls
 
     arma::vec lv;    // density due to states in v-band, induced from left
