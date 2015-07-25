@@ -21,7 +21,8 @@
 
 class device {
 public:
-    static constexpr double dphi_threshold = 1e-12; // convergence threshold for dphi
+    static constexpr double dphi_threshold_ss = 1e-12; // convergence threshold for dphi (steady state)
+    static constexpr double dphi_threshold_td = 1e-8; // convergence threshold for dphi (time-evolution)
     static constexpr int max_iterations = 100;      // maximum number of iterations before abortion
     static constexpr unsigned mem = 2000;          // maximum length of the memory integral
 
@@ -163,7 +164,7 @@ bool device::steady_state() {
         dphi = phi[0].update(p, R0, n[0], mr_neo);
 
         // check for convergence (i.e. deviation is smaller than threshold value)
-        converged = dphi < dphi_threshold;
+        converged = dphi < dphi_threshold_ss;
         if (converged) {
             break;
         }
@@ -177,7 +178,7 @@ bool device::steady_state() {
     // get current
     I[0] = current(p, phi[0]);
 
-    std::cout << "(" << name << "), V={" << V[0][0] << ", " << V[0][1] << ", " << V[0][2] << "}: " << it << " iterations, reldev=" << dphi/dphi_threshold;
+    std::cout << "(" << name << "), V={" << V[0][0] << ", " << V[0][1] << ", " << V[0][2] << "}: " << it << " iterations, reldev=" << dphi/dphi_threshold_ss;
     std::cout << (converged ? "" : ", DIVERGED!!!");
     std::cout << ", n_E = " << E0[0].size() + E0[1].size() + E0[2].size() + E0[3].size() << std::endl;
 
@@ -324,7 +325,7 @@ bool device::time_step() {
         dphi = phi[m].update(p, R0, n[m], mr_neo);
 
         // check for convergence (i.e. deviation is smaller than threshold value)
-        converged = dphi < dphi_threshold;
+        converged = dphi < dphi_threshold_td;
         if (converged) {
             break;
         }
@@ -339,7 +340,7 @@ bool device::time_step() {
     I[m] = current(p, phi[m], psi);
 
     std::cout << "(" << name << ") timestep " << m << ": t=" << std::setprecision(5) << std::fixed << m * c::dt * 1e12
-              << "ps, " << it + 1 << " iterations, reldev=" << dphi / dphi_threshold
+              << "ps, " << it + 1 << " iterations, reldev=" << dphi / dphi_threshold_td
               << (converged ? "" : ", DIVERGED!!!") << std::endl;
 
     callback();
