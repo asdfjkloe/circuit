@@ -23,6 +23,7 @@
 #include "ring_oscillator.hpp"
 #include "voltage.hpp"
 #include "wave_packet.hpp"
+#include "util/movie.hpp"
 
 #undef CHARGE_DENSITY_HPP_BODY
 
@@ -74,7 +75,7 @@ static inline void trans (char ** argv) {
     d.p.l_g = l_g;
     d.p.update("updated");
 
-    transfer<true>(d.p, {{0, Vd, Vg0}}, Vg1, N);
+    transfer<true>(d.p, { { 0, Vd, Vg0 } }, Vg1, N);
 
     ofstream s(save_folder() + "/parameters.ini");
     s << d.p.to_string();
@@ -98,7 +99,7 @@ static inline void outp (char ** argv) {
     d.p.l_g = l_g;
     d.p.update("updated");
 
-    output<true>(d.p, {{0, Vd0, Vg}}, Vd1, N);
+    output<true>(d.p, { { 0, Vd0, Vg } }, Vd1, N);
 
     ofstream s(save_folder() + "/parameters.ini");
     s << d.p.to_string();
@@ -136,7 +137,7 @@ static void inv (char ** argv) {
 
     for (int i = 0; i < npart; ++i) {
         cout << "\nstep " << i+1 << "/" << npart << ": \n";
-        inv.steady_state({0, V_dd, V_in(i)});
+        inv.steady_state({ 0, V_dd, V_in(i) });
         V_out(i) = inv.get_output(0)->V;
     }
 
@@ -163,7 +164,7 @@ static inline void ro (char ** argv) {
     cout << "saving results in " << save_folder(true, ss.str()) << endl;
 
     ring_oscillator<3> ro(ntype, ptype, C);
-    ro.time_evolution(signal<2>(T, voltage<2>{0.0, V_dd}));
+    ro.time_evolution(signal<2>(T, voltage<2>{ 0.0, V_dd }));
     ro.save<true>();
 
     ofstream sn(save_folder() + "/parameters_ntype.ini");
@@ -181,7 +182,7 @@ static inline void ldos(char ** argv) {
     double Emin = stod(argv[5]);
     double Emax = stod(argv[6]);
 
-    device dev("test", ntype, voltage<3>{0, vd, vg});
+    device dev("test", ntype, voltage<3>{ 0, vd, vg });
     dev.steady_state();
 
     plot_ldos(dev.p, dev.phi[0], 2000, Emin, Emax);
@@ -191,14 +192,70 @@ static inline void pot(char ** argv) {
     double vd = stod(argv[3]);
     double vg = stod(argv[4]);
 
-    device dev("test", ntype, voltage<3>{0, vd, vg});
+    device dev("test", ntype, voltage<3>{ 0, vd, vg });
     dev.steady_state();
 
     plot(make_pair(dev.p.x, dev.phi[0].data));
-    potential::plot2D(dev.p, {0, vd, vg}, dev.n[0]);
+    potential::plot2D(dev.p, { 0, vd, vg }, dev.n[0]);
+}
+
+static inline void gstep(char ** argv) {
+    double T   = stod(argv[3]);
+    double V0  = stod(argv[4]);
+    double V1  = stod(argv[5]);
+    double Vd  = stod(argv[6]);
+    double len = stod(argv[7]);
+    double begin = 10 * c::dt;
+
+    // go from V0 to V1
+    signal<1> sig = step_signal<1>(T, { begin, begin +  len }, { { V0 }, { V1 } });
+
+    device d("nfet", ntype, { 0, Vd, V0 });
+    d.steady_state();
+    d.init_time_evolution(sig.N_t);
+
+    std::vector<std::pair<int, int>> E_ind = movie::around_Ef(d);
+    movie argo(d, E_ind);
+
+    for (int i = 1; i < sig.N_t; ++i) {
+        // update voltages
+        for (int j : { S, D, G }) {
+            d.contacts[j]->V = sig.V[i][j];
+        }
+
+        d.time_step();
+    }
+
+    d.save();
 }
 
 static inline void test(char ** argv) {
+    cout << "Test function. Arguments: " << argv << endl;
+    double vs = stod(argv[3]);
+    double vd = stod(argv[4]);
+    double vg = stod(argv[5]);
+
+    device_params p = ntype; // make standard constructor sometime...
+
+    string s(argv[5]);
+    if (s == "ntfet") {
+        p = ntfet;
+    } else if (s == "ptfet") {
+        p = ptfet;
+    }
+
+    device d(argv[5], p, { vs, vd, vg });
+    d.steady_state();
+    std::vector<std::pair<int, int>> E_ind = movie::around_Ef(d);
+
+    cout << "left band: " << E_ind[0].first
+         << ", index: " << E_ind[0].second
+         << ", E = " << d.E0[E_ind[0].first](E_ind[0].second)
+         << ", ref = " << d.phi[0].s() + d.p.F[S] << endl;
+    cout << "right band: " << E_ind[1].first
+         << ", index: " << E_ind[1].second
+         << ", E = " << d.E0[E_ind[1].first](E_ind[1].second)
+         << ", ref = " << d.phi[0].d() + d.p.F[D] << endl;
 
 }
 
@@ -219,12 +276,14 @@ int main(int argc, char ** argv) {
         outp(argv);
     } else if (stype == "inv" && argc == 9) {
         inv(argv);
-    } else if (stype == "ro" && argc == 6) {
-        ro(argv);
     } else if (stype == "ldos" && argc == 7) {
         ldos(argv);
     } else if (stype == "pot" && argc == 5) {
         pot(argv);
+    } else if (stype == "ro" && argc == 6) {
+        ro(argv);
+    } else if (stype == "gstep" && argc == 6) {
+        gstep(argv);
     } else if (stype == "test") {
         test(argv);
     } else {

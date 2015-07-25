@@ -58,7 +58,7 @@ template<ulint N>
 const voltage<N> & signal<N>::operator[](int index) const {
     return V[index];
 }
-/*
+
 template<ulint N>
 signal<N> operator+(const signal<N> & s1, const signal<N> & s2) {
     signal<N> s3(s1.T + s2.T);
@@ -77,7 +77,7 @@ signal<N> step_signal(double T, const std::vector<double> & t, const std::vector
 
     auto it0 = std::begin(s.V);
     auto it1 = std::begin(s.V);
-    for (int i = 0; i < idx.size(); ++i) {
+    for (ulint i = 0; i < idx.size(); ++i) {
         it0 = it1;
         it1 = std::begin(s.V) + idx[i];
         std::fill(it0, it1, V[i]);
@@ -85,34 +85,36 @@ signal<N> step_signal(double T, const std::vector<double> & t, const std::vector
     it0 = it1;
     it1 = std::end(s.V);
     std::fill(it0, it1, V[V.size() - 1]);
-}
-
-template<ulint N>
-signal<N> linear_signal(double T, const voltage<N> & V0, const voltage<N> & V1) {
-    signal<N> s(T);
-
-    for (int i = 0; i < s.N_t; ++i) {
-        double r = ((double)i) / ((double)(s.N_t - 1));
-        s[i] = V0 * (1.0 - r) + V1 * r;
-    }
 
     return s;
 }
 
-template<ulint N>
-signal<N> linear_signal(double T, const std::vector<double> & t, const std::vector<voltage<N>> & V) {
-    double t0;
-    double t1 = 0.0;
-    voltage<N> V0;
-    voltage<N> V1 { 0 };
-    for (ulint i = 0; i < t.size(); ++i) {
-        t0 = t1;
-        t1 = t[i];
-        V0 = V1;
-        V1 = V[i];
-        linear_signal(t1 - t0, V0, V1);
-    }
-}*/
+//template<ulint N>
+//signal<N> linear_signal(double T, const voltage<N> & V0, const voltage<N> & V1) {
+//    signal<N> s(T);
+
+//    for (int i = 0; i < s.N_t; ++i) {
+//        double r = ((double)i) / ((double)(s.N_t - 1));
+//        s[i] = V0 * (1.0 - r) + V1 * r;
+//    }
+
+//    return s;
+//}
+
+//template<ulint N>
+//signal<N> linear_signal(double T, const std::vector<double> & t, const std::vector<voltage<N>> & V) {
+//    double t0;
+//    double t1 = 0.0;
+//    voltage<N> V0;
+//    voltage<N> V1 { 0 };
+//    for (ulint i = 0; i < t.size(); ++i) {
+//        t0 = t1;
+//        t1 = t[i];
+//        V0 = V1;
+//        V1 = V[i];
+//        linear_signal(t1 - t0, V0, V1);
+//    }
+//}
 
 #endif
 

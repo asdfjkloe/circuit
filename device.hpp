@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <iostream>
+#include <functional>
 
 #include "constant.hpp"
 #include "contact.hpp"
@@ -72,6 +73,9 @@ public:
 
     template<bool plots = false>
     inline void save();
+
+    inline void add_callback(const std::function<void(void)> & f);
+
 private:
     // variables used by the time-evolution algorithm
     arma::cx_mat u;
@@ -84,6 +88,9 @@ private:
 
     // precalculate the (solely geometry-dependent) q-values
     inline void calc_q();
+
+    std::vector<std::function<void()>> callbacks;
+    inline void callback();
 };
 
 template<bool mark_diverged = true>
@@ -335,6 +342,8 @@ bool device::time_step() {
               << "ps, " << it + 1 << " iterations, reldev=" << dphi / dphi_threshold
               << (converged ? "" : ", DIVERGED!!!") << std::endl;
 
+    callback();
+
     return converged;
 }
 
@@ -416,6 +425,10 @@ void device::save() {
     std::cout << " done!\n";
 }
 
+void device::add_callback(const std::function<void(void)> & f) {
+    callbacks.push_back(f);
+}
+
 void device::calc_q() {
     using namespace arma;
     using namespace std::complex_literals;
@@ -495,6 +508,14 @@ void device::calc_q() {
         qsum(i, D) = q(mem - i, D) + q(mem - 1 - i, D);
     }
     std::cout << "done!" << std::endl;
+}
+
+void device::callback() {
+    using namespace std;
+
+    for (auto i = begin(callbacks); i != end(callbacks); ++i) {
+        (*i)();
+    }
 }
 
 template<bool mark_diverged>
