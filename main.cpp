@@ -196,12 +196,12 @@ static inline void pot(char ** argv) {
 static inline void gstep(char ** argv) {
     // time-dependent simulation with step-signal on the gate
 
-    double V0    = stod(argv[4]);
-    double V1    = stod(argv[5]);
-    double Vd    = stod(argv[6]);
-    double beg   = stod(argv[7]);
-    double len   = stod(argv[8]);
-    double cool  = stod(argv[9]);
+    double V0    = stod(argv[3]);
+    double V1    = stod(argv[4]);
+    double Vd    = stod(argv[5]);
+    double beg   = stod(argv[6]);
+    double len   = stod(argv[7]);
+    double cool  = stod(argv[8]);
 
     stringstream ss;
     ss << "gate_step_signal/" << "V0=" << V0 << "V1=" << V1;

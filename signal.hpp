@@ -66,6 +66,7 @@ signal<N> operator+(const signal<N> & s1, const signal<N> & s2) {
     signal<N> s3(s1.T + s2.T);
     std::copy(s1.V.begin(), s1.V.end(), s3.V.begin());
     std::copy(s2.V.begin(), s2.V.end(), s3.V.begin() + s1.V.size());
+    return s3;
 }
 
 template<ulint N>
