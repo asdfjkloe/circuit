@@ -69,6 +69,7 @@ static const device_params nfet("nfet", fet_geometry, nfet_model);
 static const device_params nfetc("nfetc", fet_geometry, nfetc_model);
 static const device_params pfet("pfet", fet_geometry, pfet_model);
 static const device_params ntfet("ntfet", tfet_geometry, ntfet_model);
+static const device_params ntfetc("ntfetc", tfetc_geometry, ntfetc_model);
 static const device_params ptfet("ptfet", tfet_geometry, ptfet_model);
 
 //----------------------------------------------------------------------------------------------------------------------
