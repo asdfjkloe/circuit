@@ -23,7 +23,7 @@ public:
 
 // append two signals
 template<ulint N>
-static inline signal<N> operator+(const signal<N> & s1, const signal<N> s2);
+static inline signal<N> operator+(const signal<N> & s1, const signal<N> & s2);
 
 // create a linear signal: V[i] = V0 + (V1 - V0) * t_i / T
 template<ulint N>
