@@ -230,8 +230,6 @@ static inline void gstep(char ** argv) {
     }
     std::fill(vg.begin() + 10 + l, vg.end(), V1);
 
-    plot(vg);
-
     device d("nfet", ntype, { 0, Vd, V0 });
     d.steady_state();
     d.init_time_evolution(Nt);
@@ -253,28 +251,6 @@ static inline void gstep(char ** argv) {
 
 static inline void test(char ** argv) {
     cout << "Test function. Arguments: " << argv << endl;
-    double T   = stod(argv[3]);
-    double V0  = stod(argv[4]);
-    double V1  = stod(argv[5]);
-    double Vd  = stod(argv[6]);
-    double len = stod(argv[7]);
-    double begin = 10 * c::dt;
-
-//    signal<3> sig = step_signal<1>(T, { begin, begin +  len }, { {0, Vd, V0 }, { 0, V1, Vd } });
-    signal<1> sig = step_signal<1>(T, { begin, begin +  len }, { { V0 }, { V1 } });
-
-//    vec vs(sig.N_t);
-//    vec vd(sig.N_t);
-    vec vg(sig.N_t);
-
-    for (int i = 0; i < sig.N_t; ++i) {
-//        vs = sig.V[i][S];
-//        vd = sig.V[i][D];
-        vg = sig.V[i][0];
-    }
-
-//    plot(vs, vd, vg);
-    plot(vg);
 }
 
 int main(int argc, char ** argv) {
