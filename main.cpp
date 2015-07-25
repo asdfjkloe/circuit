@@ -207,6 +207,10 @@ static inline void gstep(char ** argv) {
     double len = stod(argv[7]);
     double begin = 10 * c::dt;
 
+    stringstream ss;
+    ss << "gate_step_signal/" << "V0=" << V0 << "V1=" << V1;
+    cout << "saving results in " << save_folder(true, ss.str()) << endl;
+
     // go from V0 to V1
     signal<1> sig = step_signal<1>(T, { begin, begin +  len }, { { V0 }, { V1 } });
 
@@ -219,9 +223,9 @@ static inline void gstep(char ** argv) {
 
     for (int i = 1; i < sig.N_t; ++i) {
         // update voltages
-        for (int j : { S, D, G }) {
-            d.contacts[j]->V = sig.V[i][j];
-        }
+//        for (int j : { S, D, G }) {
+            d.contacts[G]->V = sig.V[i][0];
+//        }
 
         d.time_step();
     }
@@ -231,32 +235,28 @@ static inline void gstep(char ** argv) {
 
 static inline void test(char ** argv) {
     cout << "Test function. Arguments: " << argv << endl;
-    double vs = stod(argv[3]);
-    double vd = stod(argv[4]);
-    double vg = stod(argv[5]);
+    double T   = stod(argv[3]);
+    double V0  = stod(argv[4]);
+    double V1  = stod(argv[5]);
+    double Vd  = stod(argv[6]);
+    double len = stod(argv[7]);
+    double begin = 10 * c::dt;
 
-    device_params p = ntype; // make standard constructor sometime...
+//    signal<3> sig = step_signal<1>(T, { begin, begin +  len }, { {0, Vd, V0 }, { 0, V1, Vd } });
+    signal<1> sig = step_signal<1>(T, { begin, begin +  len }, { { V0 }, { V1 } });
 
-    string s(argv[5]);
-    if (s == "ntfet") {
-        p = ntfet;
-    } else if (s == "ptfet") {
-        p = ptfet;
+//    vec vs(sig.N_t);
+//    vec vd(sig.N_t);
+    vec vg(sig.N_t);
+
+    for (int i = 0; i < sig.N_t; ++i) {
+//        vs = sig.V[i][S];
+//        vd = sig.V[i][D];
+        vg = sig.V[i][0];
     }
 
-    device d(argv[5], p, { vs, vd, vg });
-    d.steady_state();
-    std::vector<std::pair<int, int>> E_ind = movie::around_Ef(d);
-
-    cout << "left band: " << E_ind[0].first
-         << ", index: " << E_ind[0].second
-         << ", E = " << d.E0[E_ind[0].first](E_ind[0].second)
-         << ", ref = " << d.phi[0].s() + d.p.F[S] << endl;
-    cout << "right band: " << E_ind[1].first
-         << ", index: " << E_ind[1].second
-         << ", E = " << d.E0[E_ind[1].first](E_ind[1].second)
-         << ", ref = " << d.phi[0].d() + d.p.F[D] << endl;
-
+//    plot(vs, vd, vg);
+    plot(vg);
 }
 
 int main(int argc, char ** argv) {
