@@ -63,7 +63,7 @@ static const model ntfet_model {
     {
         -0.5 / 2 - 0.015, // F[S]
         0.5 / 2 + 0.015, // F[D]
-        0.213            // F[G]
+        0.21            // F[G]
     }
 };
 

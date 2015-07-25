@@ -173,11 +173,12 @@ static inline void ldos(char ** argv) {
     double vg = stod(argv[4]);
     double Emin = stod(argv[5]);
     double Emax = stod(argv[6]);
+    int    N    = stod(argv[7]);
 
     device dev("test", ntype, voltage<3>{ 0, vd, vg });
     dev.steady_state();
 
-    plot_ldos(dev.p, dev.phi[0], 2000, Emin, Emax);
+    plot_ldos(dev.p, dev.phi[0], N, Emin, Emax);
 }
 
 static inline void pot(char ** argv) {
@@ -234,6 +235,10 @@ static inline void gstep(char ** argv) {
 
 static inline void test(char ** argv) {
     cout << "Test function. Arguments: " << argv << endl;
+    device d("nfet", ntype, voltage<3>{0,0,0});
+    d.steady_state();
+    cout << d.p.N_x << endl;
+    cout << d.phi[0].data.size() << endl;
 }
 
 int main(int argc, char ** argv) {
@@ -251,9 +256,9 @@ int main(int argc, char ** argv) {
         trans(argv);
     } else if (stype == "outp" && argc == 8) {
         outp(argv);
-    } else if (stype == "inv" && argc == 9) {
+    } else if (stype == "inv" && argc == 7) {
         inv(argv);
-    } else if (stype == "ldos" && argc == 7) {
+    } else if (stype == "ldos" && argc == 8) {
         ldos(argv);
     } else if (stype == "pot" && argc == 5) {
         pot(argv);
