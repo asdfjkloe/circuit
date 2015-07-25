@@ -16,7 +16,7 @@ public:
 
 private:
     int frames; // the current number of frames that have been produced
-    static constexpr int frame_skip = 4;
+    static constexpr int frame_skip = 1;
 
     static constexpr double phimin = -1.5;
     static constexpr double phimax = +1.0;
@@ -63,9 +63,6 @@ movie::movie(device & dev, const std::vector<std::pair<int, int> > &E_i)
     d.add_callback([this] () {
         this->frame();
     });
-
-    // produce first frame
-    frame();
 }
 
 std::vector<std::pair<int, int>> movie::around_Ef(const device & d) {

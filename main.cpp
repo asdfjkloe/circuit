@@ -282,7 +282,7 @@ int main(int argc, char ** argv) {
         pot(argv);
     } else if (stype == "ro" && argc == 6) {
         ro(argv);
-    } else if (stype == "gstep" && argc == 6) {
+    } else if (stype == "gstep" && argc == 8) {
         gstep(argv);
     } else if (stype == "test") {
         test(argv);
