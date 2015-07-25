@@ -156,6 +156,7 @@ static void inv (char ** argv) {
 
 static inline void ro (char ** argv) {
     // starts a transient ring-oscillator simulation
+
     double T = stod(argv[3]);
     double C = stod(argv[4]);
     double V_dd = stod(argv[5]);
@@ -177,6 +178,8 @@ static inline void ro (char ** argv) {
 }
 
 static inline void ldos(char ** argv) {
+    // plots the ldos for a self-consistent static situation
+
     double vd = stod(argv[3]);
     double vg = stod(argv[4]);
     double Emin = stod(argv[5]);
@@ -189,6 +192,8 @@ static inline void ldos(char ** argv) {
 }
 
 static inline void pot(char ** argv) {
+    // plots a self-consisent potential
+
     double vd = stod(argv[3]);
     double vg = stod(argv[4]);
 
@@ -200,6 +205,8 @@ static inline void pot(char ** argv) {
 }
 
 static inline void gstep(char ** argv) {
+    // time-dependent simulation with step-signal on the gate
+
     double T   = stod(argv[3]);
     double V0  = stod(argv[4]);
     double V1  = stod(argv[5]);
@@ -212,19 +219,30 @@ static inline void gstep(char ** argv) {
     cout << "saving results in " << save_folder(true, ss.str()) << endl;
 
     // go from V0 to V1
-    signal<1> sig = step_signal<1>(T, { begin, begin +  len }, { { V0 }, { V1 } });
+//    signal<1> sig = step_signal<1>(T, { begin, begin +  len }, { { V0 }, { V1 } });
+    int Nt = round(T / c::dt);
+    vec vg(Nt);
+    std::fill(vg.begin(), vg.begin() + 10, V0);
+    int l = round(len / c::dt);
+    vec slope = linspace(V0, V1, l);
+    for (int i = 10; i <= l + 10; ++i) {
+        vg(i) = slope(i - 10);
+    }
+    std::fill(vg.begin() + 10 + l, vg.end(), V1);
+
+    plot(vg);
 
     device d("nfet", ntype, { 0, Vd, V0 });
     d.steady_state();
-    d.init_time_evolution(sig.N_t);
+    d.init_time_evolution(Nt);
 
     std::vector<std::pair<int, int>> E_ind = movie::around_Ef(d);
     movie argo(d, E_ind);
 
-    for (int i = 1; i < sig.N_t; ++i) {
+    for (int i = 1; i < Nt; ++i) {
         // update voltages
 //        for (int j : { S, D, G }) {
-            d.contacts[G]->V = sig.V[i][0];
+            d.contacts[G]->V = vg(i);
 //        }
 
         d.time_step();
