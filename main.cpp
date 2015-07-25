@@ -114,37 +114,25 @@ static void inv(char ** argv) {
     double Vin1  = stod(argv[4]);
     double V_dd  = stod(argv[5]);
     int    N     = stoi(argv[6]);
-    int    part  = stoi(argv[7]);
-    int    parts = stoi(argv[8]);
 
     inverter inv(ntype, ptype);
-    double span_tot = Vin1 - Vin0;
-    double span_part = span_tot / parts;
-    double step  = span_tot / N;
-    double start = (part - 1) * span_part + Vin0;
-    double end   = part       * span_part + Vin0 - step;
-    int    npart = N / parts;
 
     stringstream ss;
-    ss << "Vdd=" << V_dd;
-    cout << "inverter curve; part " << part << " of " << parts << endl;
+    ss << "ntd_inverter/Vdd=" << V_dd;
 
-    // ntd-inverter folders dont't have timestamps to simplify merging of parts!
-    // Data with same Vdd will be OVERWRITTEN!
-    cout << "saving results in " << save_folder(false, "ntd_inverter/" + ss.str()) << endl;
+    cout << "saving results in " << save_folder(true, ss.str()) << endl;
 
-    vec V_in = linspace(start, end, npart);
-    vec V_out(npart);
+    vec V_in = linspace(Vin0, Vin1, N);
+    vec V_out(N);
 
-    for (int i = 0; i < npart; ++i) {
-        cout << "\nstep " << i+1 << "/" << npart << ": \n";
+    for (int i = 0; i < N; ++i) {
+        cout << "\nstep " << i+1 << "/" << N << ": \n";
         inv.steady_state({ 0, V_dd, V_in(i) });
         V_out(i) = inv.get_output(0)->V;
     }
 
     mat ret = join_horiz(V_in, V_out);
-    ss << "_part" << part;
-    ret.save(save_folder() + "/inv_" + ss.str() + ".csv", csv_ascii);
+    ret.save(save_folder() + "/inverter_curve.csv", csv_ascii);
 
     ofstream sn(save_folder() + "/parameters_ntype.ini");
     sn << ntype.to_string();
@@ -208,45 +196,39 @@ static inline void pot(char ** argv) {
 static inline void gstep(char ** argv) {
     // time-dependent simulation with step-signal on the gate
 
-    double T   = stod(argv[3]);
-    double V0  = stod(argv[4]);
-    double V1  = stod(argv[5]);
-    double Vd  = stod(argv[6]);
-    double len = stod(argv[7]);
-    double begin = 10 * c::dt;
+    double V0    = stod(argv[4]);
+    double V1    = stod(argv[5]);
+    double Vd    = stod(argv[6]);
+    double beg   = stod(argv[7]);
+    double len   = stod(argv[8]);
+    double cool  = stod(argv[9]);
 
     stringstream ss;
     ss << "gate_step_signal/" << "V0=" << V0 << "V1=" << V1;
     cout << "saving results in " << save_folder(true, ss.str()) << endl;
 
-    // go from V0 to V1
-//    signal<1> sig = step_signal<1>(T, { begin, begin +  len }, { { V0 }, { V1 } });
-    int Nt = round(T / c::dt);
-    vec vg(Nt);
-    std::fill(vg.begin(), vg.begin() + 10, V0);
-    int l = round(len / c::dt);
-    vec slope = linspace(V0, V1, l);
-    for (int i = 10; i <= l + 10; ++i) {
-        vg(i) = slope(i - 10);
-    }
-    std::fill(vg.begin() + 10 + l, vg.end(), V1);
+    signal<3> pre   = linear_signal<3>(beg,  { 0, Vd, V0 }, { 0, Vd, V0 }); // before
+    signal<3> slope = linear_signal<3>(len,  { 0, Vd, V0 }, { 0, Vd, V1 }); // while
+    signal<3> after = linear_signal<3>(cool, { 0, Vd, V1 }, { 0, Vd, V1 }); // after
+
+    signal<3> sig = pre + slope + after; // complete signal
 
     device d("nfet", ntype, { 0, Vd, V0 });
     d.steady_state();
-    d.init_time_evolution(Nt);
+    d.init_time_evolution(sig.N_t);
 
+    // get energy indices around fermi energy and init movie
     std::vector<std::pair<int, int>> E_ind = movie::around_Ef(d);
     movie argo(d, E_ind);
 
-    for (int i = 1; i < Nt; ++i) {
-        // update voltages
-//        for (int j : { S, D, G }) {
-            d.contacts[G]->V = vg(i);
-//        }
-
+    // set voltages
+    // (note: only V_g is needed, but I wanted to try it for later...)
+    for (int i = 1; i < sig.N_t; ++i) {
+        for (int term : {S, D, G}) {
+            d.contacts[G]->V = sig.V[i][term];
+        }
         d.time_step();
     }
-
     d.save();
 }
 
@@ -277,7 +259,7 @@ int main(int argc, char ** argv) {
         pot(argv);
     } else if (stype == "ro" && argc == 6) {
         ro(argv);
-    } else if (stype == "gstep" && argc == 8) {
+    } else if (stype == "gstep" && argc == 9) {
         gstep(argv);
     } else if (stype == "test") {
         test(argv);

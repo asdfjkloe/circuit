@@ -56,28 +56,26 @@ static const model pfet_model {
 };
 
 static const model ntfet_model {
-    0.62,             // E_g
+    0.5,             // E_g
     0.04 * c::m_e,    // m_eff
-    0.62,             // E_gc
+    0.5,             // E_gc
     0.04 * c::m_e,    // m_efc
-//    0.30,             // E_gc
-//    0.10 * c::m_e,    // m_efc
     {
-        -0.62 / 2 - 0.015, // F[S] (p++)
-        +0.62 / 2 + 0.001, // F[D] (n+)
-         0.25               // F[G]
+        -0.5 / 2 - 0.015, // F[S]
+        0.5 / 2 + 0.015, // F[D]
+        0.213            // F[G]
     }
 };
 
 static const model ntfetc_model {
-    0.62,             // E_g
+    0.5,              // E_g
     0.04 * c::m_e,    // m_eff
     0.30,             // E_gc
     0.10 * c::m_e,    // m_efc
     {
-        -0.62 / 2 - 0.015, // F[S] (p++)
-        +0.62 / 2 + 0.001, // F[D] (n+)
-         0.25               // F[G]
+        -0.5 / 2 - 0.020, // F[S] (p++)
+        +0.5 / 2 + 0.001, // F[D] (n+)
+         0.213            // F[G]
     }
 };
 
