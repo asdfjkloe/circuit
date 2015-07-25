@@ -5,8 +5,6 @@
 #include <vector>
 #include <algorithm>
 
-#include "device.hpp"
-
 class movie {
 public:
     // provide an initialized device object with solved steady-state
