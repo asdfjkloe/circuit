@@ -21,19 +21,21 @@ public:
     inline const voltage<N> & operator[](int index) const;
 };
 
+// append two signals
 template<ulint N>
 static inline signal<N> operator+(const signal<N> & s1, const signal<N> s2);
 
-template<ulint N>
-static inline signal<N> step_signal(double T, const std::vector<double> & t, const std::vector<voltage<N>> & V);
+// create a linear signal: V[i] = V0 + (V1 - V0) * t_i / T
 template<ulint N>
 static inline signal<N> linear_signal(double T, const voltage<N> & V0, const voltage<N> & V1);
+
+// create a sine signal: V[i] = V0 + VA * sin(f * t_i  + ph)
 template<ulint N>
-static inline signal<N> linear_signal(double T, const std::vector<double> & t, const std::vector<voltage<N>> & V);
+static inline signal<N> sine_signal(double T, const voltage<N> & V0, const voltage<N> & VA, const double f, const double ph = 0);
+
+// create a cosine signal: V[i] = V0 + VA * cos(f * t_i + ph)
 template<ulint N>
-static inline signal<N> sine_signal(double T, const voltage<N> & V0, const voltage<N> & V_a, const double f, const double ph = 0);
-template<ulint N>
-static inline signal<N> cosine_signal(double T, const voltage<N> & V0, const voltage<N> & V_a, const double f, const double ph = 0);
+static inline signal<N> cosine_signal(double T, const voltage<N> & V0, const voltage<N> & VA, const double f, const double ph = 0);
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -67,54 +69,31 @@ signal<N> operator+(const signal<N> & s1, const signal<N> & s2) {
 }
 
 template<ulint N>
-signal<N> step_signal(double T, const std::vector<double> & t, const std::vector<voltage<N>> & V) {
+signal<N> linear_signal(double T, const voltage<N> & V0, const voltage<N> & V1) {
     signal<N> s(T);
 
-    std::vector<int> idx(t.size());
-    for (ulint i = 0; i < t.size(); ++i) {
-        idx[i] = std::round(t[i] / c::dt);
+    for (int i = 0; i < s.N_t; ++i) {
+        double r = ((double)i) / ((double)(s.N_t - 1));
+        s[i] = V0 * (1.0 - r) + V1 * r;
     }
-
-    auto it0 = std::begin(s.V);
-    auto it1 = std::begin(s.V);
-    for (ulint i = 0; i < idx.size(); ++i) {
-        it0 = it1;
-        it1 = std::begin(s.V) + idx[i];
-        std::fill(it0, it1, V[i]);
-    }
-    it0 = it1;
-    it1 = std::end(s.V);
-    std::fill(it0, it1, V[V.size() - 1]);
 
     return s;
 }
+template<ulint N>
+signal<N> sine_signal(double T, const voltage<N> & V0, const voltage<N> & VA, const double f, const double ph) {
+    signal<N> s(T);
 
-//template<ulint N>
-//signal<N> linear_signal(double T, const voltage<N> & V0, const voltage<N> & V1) {
-//    signal<N> s(T);
+    for (int i = 0; i < s.N_t; ++i) {
+        double t = i * s.dt;
+        s[i] = V0 + VA * std::sin(t * f + ph);
+    }
 
-//    for (int i = 0; i < s.N_t; ++i) {
-//        double r = ((double)i) / ((double)(s.N_t - 1));
-//        s[i] = V0 * (1.0 - r) + V1 * r;
-//    }
-
-//    return s;
-//}
-
-//template<ulint N>
-//signal<N> linear_signal(double T, const std::vector<double> & t, const std::vector<voltage<N>> & V) {
-//    double t0;
-//    double t1 = 0.0;
-//    voltage<N> V0;
-//    voltage<N> V1 { 0 };
-//    for (ulint i = 0; i < t.size(); ++i) {
-//        t0 = t1;
-//        t1 = t[i];
-//        V0 = V1;
-//        V1 = V[i];
-//        linear_signal(t1 - t0, V0, V1);
-//    }
-//}
+    return s;
+}
+template<ulint N>
+signal<N> cosine_signal(double T, const voltage<N> & V0, const voltage<N> & VA, const double f, const double ph) {
+    return sine_signal(T, V0, VA, f, ph + 0.5 * M_PI);
+}
 
 #endif
 

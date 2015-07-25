@@ -55,7 +55,7 @@ movie::movie(device & dev, const std::vector<std::pair<int, int> > &E_i)
 
     // band offsets for band drawing
     band_offset(d.p.sc).fill(0.5 * d.p.E_gc);
-    band_offset({d.p.sox.a, d.p.dox.b}).fill(0.5 * d.p.E_g);
+    band_offset.rows(d.p.sox.a, d.p.dox.b).fill(0.5 * d.p.E_g);
     band_offset(d.p.dc).fill(0.5 * d.p.E_gc);
 
     d.add_callback([this] () {
