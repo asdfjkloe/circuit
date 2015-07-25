@@ -239,6 +239,8 @@ static inline void test(char ** argv) {
     d.steady_state();
     cout << d.p.N_x << endl;
     cout << d.phi[0].data.size() << endl;
+    cout << d.p.x.size() << endl;
+    cout << d.p.dc.b << endl;
 }
 
 int main(int argc, char ** argv) {
