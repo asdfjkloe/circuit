@@ -96,7 +96,7 @@ bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
     this->inputs[VDD]->V = V[VDD];
 
     // starting point: 1/2 operating voltage + small deviation
-    static constexpr double kick = 1e-9;
+    static constexpr double kick = 1e-6;
     this->outputs[N-1]->V = (.5 + kick)  * (V[VDD] - V[GND]);
 
     // solve each inverter seperately, don't go back to the start
