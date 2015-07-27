@@ -21,12 +21,12 @@ public:
 
 static const model nfet_model {
     0.62,             // E_g
-    0.01 * c::m_e,    // m_eff
+    0.02 * c::m_e,    // m_eff
     0.62,             // E_gc
-    0.01 * c::m_e,    // m_efc
+    0.02 * c::m_e,    // m_efc
     {
         0.62 / 2 + 0.015, // F[S]
-        0.62 / 2 + 0.015, // F[D]
+        0.62 / 2 + 0.001, // F[D]
         0.2               // F[G]
     }
 };

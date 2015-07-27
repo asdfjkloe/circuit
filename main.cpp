@@ -32,8 +32,8 @@ using namespace arma;
 using namespace std;
 
 // set the type of device
-static device_params ntype = ntfet;
-static device_params ptype = ptfet;
+static device_params ntype = nfet;
+static device_params ptype = pfet;
 
 static inline void setup() {
     // disable nested parallelism globally
@@ -59,7 +59,7 @@ static inline void trans (char ** argv) {
     ss << "transfer/lg=" << l_g << "_Vd=" << Vd;
     cout << "saving results in " << save_folder(true, ss.str()) << endl;
 
-    device d("prototype", ntype);
+    device d("prototype", ptype);
     d.p.l_g = l_g;
     d.p.update("updated");
 
