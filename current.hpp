@@ -101,7 +101,7 @@ current::current(const device_params & p, const potential & phi, const wave_pack
                 double b = p.t_vec(1) * (std::conj((*psi.data)(2, i)) * (*psi.data)(1, i)).imag();
 
                 // first value: just take b (current from cell 0 to 1)
-                I_thread(0) = b * W * fermi<true>(f, psi.E(0, i) - phi(0));
+                I_thread(0) += b * W * fermi<true>(f, psi.E(0, i) - phi(0));
 
                 // loop over all unit cells
                 for (int j = 1; j < p.N_x - 1; ++j) {
