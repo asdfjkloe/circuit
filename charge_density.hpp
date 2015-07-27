@@ -17,10 +17,10 @@ static inline arma::cx_vec green_col(const device_params & p, const potential &,
 class charge_density {
 public:
     // adaptive integration parameters
-    static constexpr double E_min = -1.3;         // relative to potential
+    static constexpr double E_min = -1.2;         // relative to potential
     static constexpr double E_max = +1.2;         // relative to potential
-    static constexpr double rel_tol = 6e-3;       // subdivide an interval as long as the relative deviation is larger
-    static constexpr int initial_waypoints = 100; // divide into at least this number of smaller intervalls
+    static constexpr double rel_tol = 1e-3;       // subdivide an interval as long as the relative deviation is larger
+    static constexpr int initial_waypoints = 400; // divide into at least this number of smaller intervalls
 
     arma::vec lv;    // density due to states in v-band, induced from left
     arma::vec rv;    // density due to states in v-band, induced from right
@@ -421,8 +421,8 @@ arma::vec charge_density::get_n0(const device_params & p) {
         double dos = E / sqrt(4*p.t1*p.t1*p.t2*p.t2 - (E*E - p.t1*p.t1 - p.t2*p.t2) * (E*E - p.t1*p.t1 - p.t2*p.t2));
         vec ret = arma::vec(3);
         ret(0) = (1 - fermi(E, p.F[S])) * dos;
-//        ret(1) = (1 - fermi(E, p.F[G])) * dos;
-        ret(1) = (1 - fermi(E, 0)) * dos;
+        ret(1) = (1 - fermi(E, p.F[G])) * dos;
+//        ret(1) = (1 - fermi(E, 0)) * dos;
         ret(2) = (1 - fermi(E, p.F[D])) * dos;
         return ret;
     }, 3, linspace(E_min, - 0.5 * p.E_g, 100), rel_tol, c::epsilon(), x2, w2);
@@ -432,8 +432,8 @@ arma::vec charge_density::get_n0(const device_params & p) {
         double dos = E / sqrt(4*p.t1*p.t1*p.t2*p.t2 - (E*E - p.t1*p.t1 - p.t2*p.t2) * (E*E - p.t1*p.t1 - p.t2*p.t2));
         vec ret = arma::vec(3);
         ret(0) = fermi(E, p.F[S]) * dos;
-//        ret(1) = fermi(E, p.F[G]) * dos;
-        ret(1) = fermi(E, 0) * dos;
+        ret(1) = fermi(E, p.F[G]) * dos;
+//        ret(1) = fermi(E, 0) * dos;
         ret(2) = fermi(E, p.F[D]) * dos;
         return ret;
     }, 3, linspace(0.5 * p.E_g, E_max, 100), rel_tol, c::epsilon(), x3, w3);

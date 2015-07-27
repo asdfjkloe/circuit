@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <iostream>
+#include <functional>
 
 #include "constant.hpp"
 #include "contact.hpp"
@@ -20,8 +21,9 @@
 
 class device {
 public:
-    static constexpr double dphi_threshold = 1e-9; // convergence threshold for dphi
-    static constexpr int max_iterations = 50;      // maximum number of iterations before abortion
+    static constexpr double dphi_threshold_ss = 1e-12; // convergence threshold for dphi (steady state)
+    static constexpr double dphi_threshold_td = 1e-9; // convergence threshold for dphi (time-evolution)
+    static constexpr int max_iterations = 100;      // maximum number of iterations before abortion
     static constexpr unsigned mem = 2000;          // maximum length of the memory integral
 
     // name
@@ -72,6 +74,9 @@ public:
 
     template<bool plots = false>
     inline void save();
+
+    inline void add_callback(const std::function<void(void)> & f);
+
 private:
     // variables used by the time-evolution algorithm
     arma::cx_mat u;
@@ -82,16 +87,11 @@ private:
     arma::cx_mat old_L;
     arma::cx_mat cx_eye;
 
-//    arma::cx_vec U_eff; // row-major
-//    arma::cx_vec A;
-//    arma::cx_vec A2;
-
     // precalculate the (solely geometry-dependent) q-values
     inline void calc_q();
 
-    // calculate propagator
-//    using cx_double = arma::cx_double;
-//    inline void calc_U_eff(const cx_double * A, const cx_double * A2, const cx_double * B, const cx_double * C, int N, cx_double * U);
+    std::vector<std::function<void()>> callbacks;
+    inline void callback();
 };
 
 template<bool mark_diverged = true>
@@ -164,7 +164,7 @@ bool device::steady_state() {
         dphi = phi[0].update(p, R0, n[0], mr_neo);
 
         // check for convergence (i.e. deviation is smaller than threshold value)
-        converged = dphi < dphi_threshold;
+        converged = dphi < dphi_threshold_ss;
         if (converged) {
             break;
         }
@@ -178,7 +178,7 @@ bool device::steady_state() {
     // get current
     I[0] = current(p, phi[0]);
 
-    std::cout << "(" << name << "), V={" << V[0][0] << ", " << V[0][1] << ", " << V[0][2] << "}: " << it << " iterations, reldev=" << dphi/dphi_threshold;
+    std::cout << "(" << name << "), V={" << V[0][0] << ", " << V[0][1] << ", " << V[0][2] << "}: " << it << " iterations, reldev=" << dphi/dphi_threshold_ss;
     std::cout << (converged ? "" : ", DIVERGED!!!");
     std::cout << ", n_E = " << E0[0].size() + E0[1].size() + E0[2].size() + E0[3].size() << std::endl;
 
@@ -274,25 +274,17 @@ bool device::time_step() {
     for (it = 0; it < max_iterations; ++it) {
 
         // diagonal of H with self-energy
-//        arma::cx_vec diag = conv_to<cx_vec>::from(0.5 * (phi[m].twice + phi[m - 1].twice));
-//        diag(            0) -= 1i * g * q(0, S);
-//        diag(2 * p.N_x - 1) -= 1i * g * q(0, D);
         H_eff.diag() = conv_to<cx_vec>::from(0.5 * (phi[m].twice + phi[m - 1].twice));
         H_eff(            0,             0) -= 1i * g * q(0, S);
         H_eff(2 * p.N_x - 1, 2 * p.N_x - 1) -= 1i * g * q(0, D);
 
         // crank-nicolson propagator
         cx_mat U_eff = solve(cx_eye + 1i * g * H_eff, cx_eye - 1i * g * H_eff);
-//        arma::cx_vec B = 1.0 + 1i * g * diag;
-//        arma::cx_vec C = 1.0 - 1i * g * diag;
-//        calc_U_eff(A.memptr(), A2.memptr(), B.memptr(), C.memptr(), 2 * p.N_x, U_eff.memptr());
 
         // inv
         cx_mat inv(2 * p.N_x, 2);
         inv.col(S) = inverse_col< true>(cx_vec(1i * g * p.t_vec), cx_vec(1.0 + 1i * g * H_eff.diag()));
         inv.col(D) = inverse_col<false>(cx_vec(1i * g * p.t_vec), cx_vec(1.0 + 1i * g * H_eff.diag()));
-//        inv.col(S) = inverse_col< true>(A, B);
-//        inv.col(D) = inverse_col<false>(A, B);
 
         // u
         u(m - 1, S) = 0.5 * (phi[m].s() + phi[m - 1].s()) - phi[0].s();
@@ -333,7 +325,7 @@ bool device::time_step() {
         dphi = phi[m].update(p, R0, n[m], mr_neo);
 
         // check for convergence (i.e. deviation is smaller than threshold value)
-        converged = dphi < dphi_threshold;
+        converged = dphi < dphi_threshold_td;
         if (converged) {
             break;
         }
@@ -348,8 +340,10 @@ bool device::time_step() {
     I[m] = current(p, phi[m], psi);
 
     std::cout << "(" << name << ") timestep " << m << ": t=" << std::setprecision(5) << std::fixed << m * c::dt * 1e12
-              << "ps, " << it + 1 << " iterations, reldev=" << dphi / dphi_threshold
+              << "ps, " << it + 1 << " iterations, reldev=" << dphi / dphi_threshold_td
               << (converged ? "" : ", DIVERGED!!!") << std::endl;
+
+    callback();
 
     return converged;
 }
@@ -430,6 +424,10 @@ void device::save() {
     }
 
     std::cout << " done!\n";
+}
+
+void device::add_callback(const std::function<void(void)> & f) {
+    callbacks.push_back(f);
 }
 
 void device::calc_q() {
@@ -513,30 +511,13 @@ void device::calc_q() {
     std::cout << "done!" << std::endl;
 }
 
-//void device::calc_U_eff(const cx_double * A, const cx_double * A2, const cx_double * B, const cx_double * C, int N, cx_double * U) {
-//    cx_double b[N];
+void device::callback() {
+    using namespace std;
 
-//    // L-U
-//    b[0] = 1.0 / B[0];
-//    for (int i = 1; i < N; ++i) {
-//        b[i] = 1.0 / (B[i] - b[i - 1] * A2[i - 1]);
-//    }
-
-//    U[(N - 1) * c::bw] = b[N - 1] * C[N - 1] + b[N - 2] * b[N - 1] * A2[N - 2];
-
-//    for (int i = N - 2; i >= 0; --i) {
-//        cx_double t = ((i > 0) ? (b[i - 1] * A2[i - 1]) : 0.0) + C[i];
-//        U[i * c::bw    ] =   b[i] * (b[i + 1] * A2[i] * (t * b[i] + 1.0) + t);
-//        U[i * c::bw + 1] = - b[i] * A[i] * (U[(i + 1) * c::bw] + 1.0);
-
-//        int j1 = (i > N - c::bw) ? (N - i) : c::bw;
-//        for (int j = 2; j < j1; ++j) {
-//            U[i * c::bw + j] = - b[i] * A[i] * U[(i + 1) * c::bw + (j - 1)];
-//        }
-
-//        b[i] = b[i] * b[i] * A2[i] * b[i + 1] + b[i];
-//    }
-//}
+    for (auto i = begin(callbacks); i != end(callbacks); ++i) {
+        (*i)();
+    }
+}
 
 template<bool mark_diverged>
 static std::vector<current> curve(const device_params & p, const std::vector<voltage<3>> & V) {

@@ -32,7 +32,8 @@ HEADERS += \
     inverter.hpp \
     ring_oscillator.hpp \
     util/system.hpp \
-    signal.hpp
+    signal.hpp \
+    util/movie.hpp
 
 LIBS += -lblas -lgomp -lsuperlu
 
