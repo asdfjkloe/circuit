@@ -66,13 +66,13 @@ static inline void trans(char ** argv) {
     double Vg0 = stod(argv[4]);
     double Vg1 = stod(argv[5]);
     double Vd  = stod(argv[6]);
-    int N      = stod(argv[7]);
+    int N      = stoi(argv[7]);
 
     stringstream ss;
     ss << "transfer/lg=" << l_g << "_Vd=" << Vd;
     cout << "saving results in " << save_folder(true, ss.str()) << endl;
 
-    device d("prototype", ptype);
+    device d("prototype", ntype);
     d.p.l_g = l_g;
     d.p.update("updated");
 
@@ -90,7 +90,7 @@ static inline void outp(char ** argv) {
     double Vd0 = stod(argv[4]);
     double Vd1 = stod(argv[5]);
     double Vg  = stod(argv[6]);
-    int N      = stod(argv[7]);
+    int N      = stoi(argv[7]);
 
     stringstream ss;
     ss << "output/lg=" << l_g;
@@ -173,7 +173,7 @@ static inline void ldos(char ** argv) {
     double vg = stod(argv[4]);
     double Emin = stod(argv[5]);
     double Emax = stod(argv[6]);
-    int    N    = stod(argv[7]);
+    int    N    = stoi(argv[7]);
 
     device dev("test", ntype, voltage<3>{ 0, vd, vg });
     dev.steady_state();
@@ -234,13 +234,9 @@ static inline void gstep(char ** argv) {
 }
 
 static inline void test(char ** argv) {
-    cout << "Test function. Arguments: " << argv << endl;
-    device d("nfet", ntype, voltage<3>{0,0,0});
-    d.steady_state();
-    cout << d.p.N_x << endl;
-    cout << d.phi[0].data.size() << endl;
-    cout << d.p.x.size() << endl;
-    cout << d.p.dc.b << endl;
+    device d("nfet", ntype);
+    auto t = transfer<false>(d.p, { { 0, .2, .2 } }, .2, 1);
+    cout << t << endl;
 }
 
 int main(int argc, char ** argv) {
