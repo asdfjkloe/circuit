@@ -93,7 +93,7 @@ static inline void outp(char ** argv) {
     int N      = stoi(argv[7]);
 
     stringstream ss;
-    ss << "output/lg=" << l_g;
+    ss << "output/lg=" << l_g << "_Vg=" << Vg;
     cout << "saving results in " << save_folder(true, ss.str()) << endl;
 
     device d("prototype", ntype);
