@@ -54,9 +54,9 @@ movie::movie(device & dev, const std::vector<std::pair<int, int> > &E_i)
     gp << "set style line 4 lc rgb RWTH_Blau\n";
 
     // band offsets for band drawing
-    band_offset(d.p.sc).fill(0.5 * d.p.E_gc);
-    band_offset.rows(d.p.sox.a, d.p.dox.b).fill(0.5 * d.p.E_g);
-    band_offset(d.p.dc).fill(0.5 * d.p.E_gc);
+    band_offset.fill(0.5 * d.p.E_g);
+    band_offset.rows(0, d.p.N_sc) -= 0.5 * (d.p.E_g - d.p.E_gc);
+    band_offset.rows(d.p.N_x - d.p.N_dc - 2, d.p.N_x - 1) -= 0.5 * (d.p.E_g - d.p.E_gc);
 
     d.add_callback([this] () {
         this->frame();

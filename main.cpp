@@ -33,8 +33,8 @@ using namespace arma;
 using namespace std;
 
 // set the type of device (mosfet or tfet)
-static device_params ntype = ntfet;
-static device_params ptype = ptfet;
+static device_params ntype = nfet;
+static device_params ptype = pfet;
 static device_params ntypec = ntfetc;
 
 static inline void setup() {
@@ -72,7 +72,7 @@ static inline void trans(char ** argv) {
     ss << "transfer/lg=" << l_g << "_Vd=" << Vd;
     cout << "saving results in " << save_folder(true, ss.str()) << endl;
 
-    device d("prototype", ntype);
+    device d("prototype", ptype);
     d.p.l_g = l_g;
     d.p.update("updated");
 
