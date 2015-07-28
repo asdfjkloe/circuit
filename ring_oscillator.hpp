@@ -1,6 +1,8 @@
 #ifndef RING_OSCILLATOR_HPP
 #define RING_OSCILLATOR_HPP
 
+#include <cmath>
+
 #include "circuit.hpp"
 
 template<int N>
@@ -81,47 +83,35 @@ template<int N>
 bool ring_oscillator<N>::steady_state(const voltage<2> & V) {
     // NOTE: there is no steady state for a ring oscillator,
     //       but a self-consistent solution is needed as a starting point for time-evolutions!
-    int i;
-    auto delta_I = [&] (double V_o) {
-        n(i).contacts[D]->V = V_o;
-
-        n(i).steady_state();
-        p(i).steady_state();
-
-        return n(i).I[0].d() + p(i).I[0].d();
-    };
 
     // set input voltages
     this->inputs[GND]->V = V[GND];
     this->inputs[VDD]->V = V[VDD];
 
-    // starting point: 1/2 operating voltage + small deviation
+    // strength of the kick (relative to Vdd)
     static constexpr double kick = 1e-3;
-    this->outputs[N-1]->V = (.5 + kick)  * (V[VDD] - V[GND]);
 
-    // solve each inverter seperately, don't go back to the start
-    for (i = 0; i < N; ++i) {
-        double V_o;
-        bool converged = brent(delta_I, V[GND], V[VDD], device::dphi_threshold_ss, V_o);
-        std::cout << "i = " << i << "; V_out = " << V_o;
-        std::cout << (converged ? "" : ", ERROR!!!") << std::endl;
-        if (!converged) {
-            return false;
-        }
+    // give the inverter inputs a small kick according to their phase
+    for (int i = 0; i < N; ++i) {
+        double phase_offset = sin(i * 2 * M_PI / N);
+        std::cout << "rel kick to stage " << i << ": " << phase_offset << std::endl;
+        this->outputs[i]->V = .5 * (V[VDD] + phase_offset * kick);
     }
 
-    // single inverter RO needs the kick again, as it always converges towards Vdd/2
-    if (N == 1) {
-        this->outputs[N-1]->V = (0.5 + kick)  * (V[VDD] - V[GND]);
+    // solve devices' steady states
+    bool ok = true;
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < 2 * N; ++i) {
+        ok &= (i % 2 == 0) ? n(i/2).steady_state() : p(i/2).steady_state();
     }
 
-    // save output voltage
+    // save first output voltage
     this->V_out.resize(1);
-    for (i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i) {
         this->V_out[0][i] = this->outputs[i]->V;
     }
 
-    return true;
+    return ok;
 }
 
 #endif
