@@ -63,22 +63,28 @@ static inline void trans(char ** argv) {
     // starts transfer-curve simulations with a certain gate-length
 
     double l_g = stod(argv[3]);
-    double Vg0 = stod(argv[4]);
-    double Vg1 = stod(argv[5]);
-    double Vd  = stod(argv[6]);
-    int N      = stoi(argv[7]);
+    double sox = stod(argv[4]);
+    double Vg0 = stod(argv[5]);
+    double Vg1 = stod(argv[6]);
+    double Vd  = stod(argv[7]);
+    int N      = stoi(argv[8]);
 
     stringstream ss;
-    ss << "transfer/lg=" << l_g << "_Vd=" << Vd;
-    cout << "saving results in " << save_folder(true, ss.str()) << endl;
+    ss << "transfer/lg=" << l_g << "_lsox=" << sox << "_Vd=" << Vd;
+    cout << "saving results in " << save_folder(ss.str()) << endl;
 
     device d("prototype", ntype);
     d.p.l_g = l_g;
+
+    // extract total contact length from prototype
+    double tmp = d.p.l_sc + d.p.l_sox;
+    d.p.l_sox = sox;
+    d.p.l_sc = tmp - sox;
     d.p.update("updated");
 
     transfer<true>(d.p, { { 0, Vd, Vg0 } }, Vg1, N);
 
-    ofstream s(save_folder() + "/parameters.ini");
+    ofstream s(save_folder() + "/device.ini");
     s << d.p.to_string();
     s.close();
 }
@@ -94,7 +100,7 @@ static inline void outp(char ** argv) {
 
     stringstream ss;
     ss << "output/lg=" << l_g << "_Vg=" << Vg;
-    cout << "saving results in " << save_folder(true, ss.str()) << endl;
+    cout << "saving results in " << save_folder(ss.str()) << endl;
 
     device d("prototype", ntype);
     d.p.l_g = l_g;
@@ -102,7 +108,7 @@ static inline void outp(char ** argv) {
 
     output<true>(d.p, { { 0, Vd0, Vg } }, Vd1, N);
 
-    ofstream s(save_folder() + "/parameters.ini");
+    ofstream s(save_folder() + "/device.ini");
     s << d.p.to_string();
     s.close();
 }
@@ -120,7 +126,7 @@ static void inv(char ** argv) {
     stringstream ss;
     ss << "ntd_inverter/Vdd=" << V_dd;
 
-    cout << "saving results in " << save_folder(true, ss.str()) << endl;
+    cout << "saving results in " << save_folder(ss.str()) << endl;
 
     vec V_in = linspace(Vin0, Vin1, N);
     vec V_out(N);
@@ -134,11 +140,11 @@ static void inv(char ** argv) {
     mat ret = join_horiz(V_in, V_out);
     ret.save(save_folder() + "/inverter_curve.csv", csv_ascii);
 
-    ofstream sn(save_folder() + "/parameters_ntype.ini");
+    ofstream sn(save_folder() + "/ntype.ini");
     sn << ntype.to_string();
     sn.close();
 
-    ofstream sp(save_folder() + "/parameters_ptype.ini");
+    ofstream sp(save_folder() + "/ptype.ini");
     sp << ptype.to_string();
     sp.close();
 }
@@ -151,17 +157,17 @@ static inline void ro(char ** argv) {
     double V_dd = stod(argv[5]);
     stringstream ss;
     ss << "ring_oscillator/" << "C=" << C << "_Vdd=" << V_dd;
-    cout << "saving results in " << save_folder(true, ss.str()) << endl;
+    cout << "saving results in " << save_folder(ss.str()) << endl;
 
     ring_oscillator<3> ro(ntype, ptype, C);
     ro.time_evolution(signal<2>(T, voltage<2>{ 0.0, V_dd }));
     ro.save<true>();
 
-    ofstream sn(save_folder() + "/parameters_ntype.ini");
+    ofstream sn(save_folder() + "/ntype.ini");
     sn << ntype.to_string();
     sn.close();
 
-    ofstream sp(save_folder() + "/parameters_ptype.ini");
+    ofstream sp(save_folder() + "/ptype.ini");
     sp << ptype.to_string();
     sp.close();
 }
@@ -206,7 +212,7 @@ static inline void gstep(char ** argv) {
 
     stringstream ss;
     ss << "gate_step_signal/" << "V0=" << V0 << "V1=" << V1;
-    cout << "saving results in " << save_folder(true, ss.str()) << endl;
+    cout << "saving results in " << save_folder(ss.str()) << endl;
 
     signal<3> pre   = linear_signal<3>(beg,  { 0, Vd, V0 }, { 0, Vd, V0 }); // before
     signal<3> slope = linear_signal<3>(len,  { 0, Vd, V0 }, { 0, Vd, V1 }); // while
@@ -250,7 +256,7 @@ int main(int argc, char ** argv) {
     string stype(argv[2]);
     if (stype == "point" && argc == 6) {
         point(argv);
-    } else if (stype == "trans" && argc == 8) {
+    } else if (stype == "trans" && argc == 9) {
         trans(argv);
     } else if (stype == "outp" && argc == 8) {
         outp(argv);

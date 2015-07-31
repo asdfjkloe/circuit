@@ -138,7 +138,7 @@ arma::vec potential::get_R0(const device_params & p, const voltage<3> & V0) {
             R0(j * p.N_x + i) = V[S];
         }
         for (int i = p.g.a; i <= (int)p.dg.a; ++i) {
-            R0(j * p.N_x + i) = V[G];
+            R0(j * p.N_x + i) = V[G] + p.shift;
         }
         for (int i = p.dox.a; i < p.N_x; ++i) {
             R0(j * p.N_x + i) = V[D];

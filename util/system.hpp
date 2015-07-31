@@ -24,11 +24,11 @@ static inline std::string now() {
     return buf;
 }
 
-static inline const std::string & save_folder(bool timestamp = true, const std::string & prefix = "results") {
+static inline const std::string & save_folder(const std::string & title = "notitle", bool timestamp = false) {
     static std::string folder;
 
     if (folder.empty()) {
-        folder = std::string(std::getenv("HOME")) + "/simulation_results/" + prefix + (timestamp ? "_started:" + now() : "");
+        folder = std::string(std::getenv("HOME")) + "/results/local/" + title + (timestamp ? "_started:" + now() : "");
         system("mkdir -p " + folder);
     }
 
