@@ -63,7 +63,7 @@ static const model ntfetc_model { // most general model
     0.10 * c::m_e,    // m_efc
     {
         -0.5 / 2 - 0.050, // F[S] (p++)
-        +0.5 / 2 - 0.001, // F[D] (n+)
+        +0.5 / 2 + 0.001, // F[D] (n+)
          0                // F[G]
     },
     0.00              // gate volatge shift

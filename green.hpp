@@ -90,12 +90,12 @@ static inline void plot_ldos(const device_params & p, const potential & phi, con
     gp.set_background(p.x, E, arma::log(lDOS));
 
     arma::vec vband = phi.data - 0.5 * p.E_g;
-    vband.rows(0, p.N_sc) -= 0.5 * (p.E_g - p.E_gc);
-    vband.rows(p.N_x - p.N_dc - 2, p.N_x - 1) -= 0.5 * (p.E_g - p.E_gc);
+    vband.rows(0, p.N_sc) += 0.5 * (p.E_g - p.E_gc);
+    vband.rows(p.N_x - p.N_dc - 2, p.N_x - 1) += 0.5 * (p.E_g - p.E_gc);
 
     arma::vec cband = phi.data + 0.5 * p.E_g;
-    cband.rows(0, p.N_sc) += 0.5 * (p.E_g - p.E_gc);
-    cband.rows(p.N_x - p.N_dc - 2, p.N_x - 1) += 0.5 * (p.E_g - p.E_gc);
+    cband.rows(0, p.N_sc) -= 0.5 * (p.E_g - p.E_gc);
+    cband.rows(p.N_x - p.N_dc - 2, p.N_x - 1) -= 0.5 * (p.E_g - p.E_gc);
 
     gp.add(p.x, vband);
     gp.add(p.x, cband);
