@@ -10,11 +10,11 @@ public:
     // provide an initialized device object with solved steady-state
     inline movie(device & dev, const std::vector<std::pair<int, int>> & E_i);
 
-    static inline std::vector<std::pair<int, int>> around_Ef(const device & d);
+    static inline std::vector<std::pair<int, int>> around_Ef(const device & d, double dist);
 
 private:
     int frames; // the current number of frames that have been produced
-    static constexpr int frame_skip = 3;
+    static constexpr int frame_skip = 1;
 
     static constexpr double phimin = -1.5;
     static constexpr double phimax = +1.0;
@@ -63,7 +63,7 @@ movie::movie(device & dev, const std::vector<std::pair<int, int> > &E_i)
     });
 }
 
-std::vector<std::pair<int, int>> movie::around_Ef(const device & d) {
+std::vector<std::pair<int, int>> movie::around_Ef(const device & d, double dist) {
     std::vector<std::pair<int, int>> E_ind(2);
 
     // in which band does Ef lie for this device?
@@ -73,10 +73,10 @@ std::vector<std::pair<int, int>> movie::around_Ef(const device & d) {
     // find energy closest to Ef (the last below is taken)
     auto begin = d.E0[E_ind[0].first].begin();
     auto end   = d.E0[E_ind[0].first].end();
-    E_ind[0].second = std::lower_bound(begin, end, d.phi[0].s() + d.p.F[S]) - begin;
+    E_ind[0].second = std::lower_bound(begin, end, d.phi[0].s() + d.p.F[S] + dist) - begin;
     begin = d.E0[E_ind[1].first].begin();
     end   = d.E0[E_ind[1].first].end();
-    E_ind[1].second = std::lower_bound(begin, end, d.phi[0].d() + d.p.F[D]) - begin;
+    E_ind[1].second = std::lower_bound(begin, end, d.phi[0].d() + d.p.F[D] + dist) - begin;
 
     return E_ind;
 }
@@ -91,7 +91,8 @@ void movie::frame() {
 
             // this is a line that indicates the wave's injection energy
             vec E_line(d.p.N_x);
-            E_line = d.psi[lattice].E.col(E_ind[i].second);
+//            E_line = d.psi[lattice].E.col(E_ind[i].second);
+            E_line.fill(d.psi[lattice].E0(E_ind[i].second));
 
             // set correct output file
             gp << "set output \"" << output_file(lattice, E, frames) << "\"\n";
@@ -129,7 +130,8 @@ void movie::frame() {
                         gp << "p "
                               "'-' w l ls 3 lw 2 notitle, "
                               "'-' w l ls 3 lw 2 t 'band edges', "
-                              "'-' w l ls 2 lw 2 t '<E_{{/Symbol Y}}>(x)'\n";
+//                              "'-' w l ls 2 lw 2 t '<E_{{/Symbol Y}}>(x)'\n";
+                              "'-' w l ls 2 lw 2 t 'E_{inj}'\n";
                     }
                 gp << d.p.x(k) << " " << ((p < 4) ? data[p](2 * k) : data[p](k)) << std::endl;
                 }

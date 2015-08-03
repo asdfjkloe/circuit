@@ -33,8 +33,8 @@ using namespace arma;
 using namespace std;
 
 // set the type of device (mosfet or tfet)
-static device_params ntype = ntfetc;
-static device_params ptype = ptfet;
+static device_params ntype = nfet;
+static device_params ptype = pfet;
 
 static inline void setup() {
     // disable nested parallelism globally
@@ -224,7 +224,13 @@ static inline void gstep(char ** argv) {
     d.init_time_evolution(sig.N_t);
 
     // get energy indices around fermi energy and init movie
-    std::vector<std::pair<int, int>> E_ind = movie::around_Ef(d);
+    std::vector<std::pair<int, int>> E_ind1 = movie::around_Ef(d, +0.1);
+    std::vector<std::pair<int, int>> E_ind2 = movie::around_Ef(d, +0.4);
+    std::vector<std::pair<int, int>> E_ind;
+    E_ind.reserve(E_ind1.size() + E_ind2.size());
+    E_ind.insert(E_ind.end(), E_ind1.begin(), E_ind1.end());
+    E_ind.insert(E_ind.end(), E_ind2.begin(), E_ind2.end());
+
     movie argo(d, E_ind);
 
     // set voltages

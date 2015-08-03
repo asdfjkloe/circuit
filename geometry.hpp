@@ -49,7 +49,7 @@ static const geometry tfet_geometry {
     15.0, // l_sox
      5.0, // l_sg
     20.0, // l_g
-    15.0, // l_dg
+    20.0, // l_dg
      0.0, // l_dox
      7.0, // l_dc
 .5 * 1.3, // r_cnt (16,0)
@@ -62,11 +62,28 @@ static const geometry tfet_geometry {
 static const geometry tfetc_geometry {
     10.0, // eps_cnt
     25.0, // eps_ox (Hf02)
-    10.0, // l_sc
+     7.0, // l_sc
     15.0, // l_sox
      5.0, // l_sg
     20.0, // l_g
-    15.0, // l_dg
+    20.0, // l_dg
+     0.0, // l_dox
+     7.0, // l_dc
+.5 * 1.3, // r_cnt (16,0)
+     1.0, // d_ox
+     2.0, // r_ext
+     0.2, // dx
+     0.1  // dr
+};
+
+static const geometry tfetn_geometry {
+    10.0, // eps_cnt
+    25.0, // eps_ox (Hf02)
+    10.0, // l_sc
+     0.0, // l_sox
+    30.0, // l_sg
+    20.0, // l_g
+    30.0, // l_dg
      0.0, // l_dox
     10.0, // l_dc
 .5 * 1.3, // r_cnt (16,0)

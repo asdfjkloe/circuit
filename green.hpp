@@ -77,14 +77,14 @@ static inline void plot_ldos(const device_params & p, const potential & phi, con
 
     arma::vec E = arma::linspace(Emin, Emax, N_grid);
 
-    gp << "set title \"Logarithmic lDOS\"\n";
+//    gp << "set title \"Logarithmic lDOS\"\n";
     gp << "set xlabel \"x / nm\"\n";
     gp << "set ylabel \"E / eV\"\n";
     gp << "set zlabel \"log(lDOS)\"\n";
     gp << "unset key\n";
     gp << "unset colorbox\n";
-//    gp << "set terminal pdf rounded color enhanced font 'arial,12'\n";
-//    gp << "set output 'lDOS.pdf'\n";
+
+    gp << "set terminal pdf font 'arial,12'\nset output 'lDOS.pdf'\n";
 
     arma::mat lDOS = get_lDOS(p, phi, N_grid, E);
     gp.set_background(p.x, E, arma::log(lDOS));
@@ -116,8 +116,15 @@ static inline void plot_ldos(const device_params & p, const potential & phi, con
     gp << "set style line 1 lt 1 lc rgb RWTH_Orange lw 2\n";
     gp << "set style line 2 lt 1 lc rgb RWTH_Orange lw 2\n";
     gp << "set style line 3 lt 1 lc rgb RWTH_Rot lw 2\n";
-    gp << "set style line 4 lc rgb RWTH_Schwarz lw 1 lt 3\n";
-    gp << "set style line 5 lc rgb RWTH_Schwarz lw 1 lt 3\n";
+    gp << "set style line 4 lt 3 lc rgb RWTH_Schwarz lw 2\n";
+    gp << "set style line 5 lt 3 lc rgb RWTH_Schwarz lw 2\n";
+
+    double phi_naut = phi.data(p.g.a + p.N_g / 2); // middle of gate
+    double indicator_max = phi_naut + .85 * p.E_g;
+    double indicator_min = phi_naut - .85 * p.E_g;
+
+    gp << "set arrow from " << p.x(p.g.a) << "," << indicator_min << " to " << p.x(p.g.a) << "," << indicator_max << " nohead front lt 2 lc rgb RWTH_Schwarz_75\n";
+    gp << "set arrow from " << p.x(p.g.b) << "," << indicator_min << " to " << p.x(p.g.b) << "," << indicator_max << " nohead front lt 2 lc rgb RWTH_Schwarz_75\n";
 
     gp.plot();
 }

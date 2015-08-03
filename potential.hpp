@@ -120,6 +120,7 @@ arma::vec potential::get_R0(const device_params & p, const voltage<3> & V0) {
 
     // add built-in voltages
     voltage<3> V = - (V0 + p.F);
+    V[G] += p.shift; // threshold-voltage matching
 
     // init return vector
     vec R0(p.N_x * p.M_r);
@@ -138,7 +139,7 @@ arma::vec potential::get_R0(const device_params & p, const voltage<3> & V0) {
             R0(j * p.N_x + i) = V[S];
         }
         for (int i = p.g.a; i <= (int)p.dg.a; ++i) {
-            R0(j * p.N_x + i) = V[G] + p.shift;
+            R0(j * p.N_x + i) = V[G];
         }
         for (int i = p.dox.a; i < p.N_x; ++i) {
             R0(j * p.N_x + i) = V[D];
@@ -348,13 +349,13 @@ void potential::plot2D(const device_params & p, const voltage<3> & V, const char
     // gnuplot setup
 
     gp << "set palette defined (0 '#B2182B', 1 '#D6604D', 2 '#F4A582', 3 '#FDDBC7', 4 '#D1E5F0', 5 '#92C5DE', 6 '#4393C3', 7 '#2166AC')\n";
-    gp << "set title \"Potential cross-section for V_{s} = " << V[S] << " V, V_{g} = " << V[G] << " V and V_{d} = " << V[D] << " V\"\n";
+//    gp << "set title \"Potential cross-section for V_{s} = " << V[S] << " V, V_{g} = " << V[G] << " V and V_{d} = " << V[D] << " V\"\n";
     gp << "set xlabel \"x / nm\"\n";
     gp << "set ylabel \"r / nm\"\n";
     gp << "set zlabel \"Phi / V\"\n";
     gp << "unset key\n";
 
-    //    gp << "set terminal pdf\nset output 'potential2D.pdf'\n";
+    gp << "set terminal pdf\nset output 'pot.pdf'\n";
 
     // indicate cnt area
     gp << "set obj rect from " << 0 << "," << p.r_cnt << " to " << p.l << "," << -p.r_cnt << "front fillstyle empty\n";
