@@ -81,9 +81,9 @@ static const geometry tfetn_geometry {
     25.0, // eps_ox (Hf02)
     10.0, // l_sc
      0.0, // l_sox
-    30.0, // l_sg
+    10.0, // l_sg
     20.0, // l_g
-    30.0, // l_dg
+    10.0, // l_dg
      0.0, // l_dox
     10.0, // l_dc
 .5 * 1.3, // r_cnt (16,0)

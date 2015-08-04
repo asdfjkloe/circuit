@@ -120,7 +120,11 @@ arma::vec potential::get_R0(const device_params & p, const voltage<3> & V0) {
 
     // add built-in voltages
     voltage<3> V = - (V0 + p.F);
+<<<<<<< HEAD
     V[G] -= p.shift;
+=======
+    V[G] -= p.shift; // threshold-voltage matching
+>>>>>>> 799646dac4c0e4cb691abafd994e57573a074e6e
 
     // init return vector
     vec R0(p.N_x * p.M_r);
@@ -355,7 +359,7 @@ void potential::plot2D(const device_params & p, const voltage<3> & V, const char
     gp << "set zlabel \"Phi / V\"\n";
     gp << "unset key\n";
 
-    gp << "set terminal pdf\nset output 'pot.pdf'\n";
+    gp << "set terminal pdf size 5,3\nset output 'pot.pdf'\n";
 
     // indicate cnt area
     gp << "set obj rect from " << 0 << "," << p.r_cnt << " to " << p.l << "," << -p.r_cnt << "front fillstyle empty\n";
