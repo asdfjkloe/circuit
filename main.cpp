@@ -255,11 +255,13 @@ static inline void gsine(char ** argv) {
     double f     = stod(argv[8]);
     double ph    = stod(argv[9]) * M_PI;
 
+    double Vstart = V0 + Vamp * sin(ph);
+
     stringstream ss;
     ss << "gate_sine_signal/" << "f=" << f;
     cout << "saving results in " << save_folder(ss.str()) << endl;
 
-    signal<3> pre   = linear_signal<3>(beg,  { 0, Vd, V0 + Vamp * sin(ph) }, { 0, Vd, V0 + Vamp * sin(ph) }); // before
+    signal<3> pre   = linear_signal<3>(beg,  { 0, Vd, Vstart }, { 0, Vd, Vstart }); // before
     signal<3> sine  =   sine_signal<3>(len,  { 0, Vd, V0 }, { 0,  0, Vamp }, f, ph); // oscillation
 
     signal<3> sig = pre + sine; // complete signal
@@ -274,7 +276,7 @@ static inline void gsine(char ** argv) {
 //    }
 //    plot(vs, vd, vg);
 
-    device d("nfet", ntype, { 0, Vd, V0 });
+    device d("nfet", ntype, sig.V[0]);
     d.steady_state();
     d.init_time_evolution(sig.N_t);
 
