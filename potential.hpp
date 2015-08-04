@@ -120,11 +120,7 @@ arma::vec potential::get_R0(const device_params & p, const voltage<3> & V0) {
 
     // add built-in voltages
     voltage<3> V = - (V0 + p.F);
-<<<<<<< HEAD
-    V[G] -= p.shift;
-=======
     V[G] -= p.shift; // threshold-voltage matching
->>>>>>> 799646dac4c0e4cb691abafd994e57573a074e6e
 
     // init return vector
     vec R0(p.N_x * p.M_r);
