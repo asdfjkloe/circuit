@@ -85,7 +85,7 @@ signal<N> sine_signal(double T, const voltage<N> & V0, const voltage<N> & VA, co
     signal<N> s(T);
 
     for (int i = 0; i < s.N_t; ++i) {
-        double t = i * s.dt;
+        double t = i * c::dt;
         s[i] = V0 + VA * std::sin(t * f + ph);
     }
 

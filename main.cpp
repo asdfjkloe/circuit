@@ -33,8 +33,8 @@ using namespace arma;
 using namespace std;
 
 // set the type of device (mosfet or tfet)
-static device_params ntype = nfet;
-static device_params ptype = pfet;
+static device_params ntype = ntfet;
+static device_params ptype = ptfet;
 
 static inline void setup() {
     // disable nested parallelism globally
@@ -244,6 +244,60 @@ static inline void gstep(char ** argv) {
     d.save();
 }
 
+static inline void gsine(char ** argv) {
+    // time-dependent simulation with step-signal on the gate
+
+    double V0    = stod(argv[3]);
+    double Vamp  = stod(argv[4]);
+    double Vd    = stod(argv[5]);
+    double beg   = stod(argv[6]);
+    double len   = stod(argv[7]); // after begin
+    double f     = stod(argv[8]);
+    double ph    = stod(argv[9]) * M_PI;
+
+    stringstream ss;
+    ss << "gate_sine_signal/" << "f=" << f;
+    cout << "saving results in " << save_folder(ss.str()) << endl;
+
+    signal<3> pre   = linear_signal<3>(beg,  { 0, Vd, V0 + Vamp * sin(ph) }, { 0, Vd, V0 + Vamp * sin(ph) }); // before
+    signal<3> sine  =   sine_signal<3>(len,  { 0, Vd, V0 }, { 0,  0, Vamp }, f, ph); // oscillation
+
+    signal<3> sig = pre + sine; // complete signal
+
+//    vec vs(sig.N_t);
+//    vec vd(sig.N_t);
+//    vec vg(sig.N_t);
+//    for (int i = 0; i < sig.N_t; ++i) {
+//        vs(i) = sig.V[i][S];
+//        vd(i) = sig.V[i][D];
+//        vg(i) = sig.V[i][G];
+//    }
+//    plot(vs, vd, vg);
+
+    device d("nfet", ntype, { 0, Vd, V0 });
+    d.steady_state();
+    d.init_time_evolution(sig.N_t);
+
+    // get energy indices around fermi energy and init movie
+    std::vector<std::pair<int, int>> E_ind1 = movie::around_Ef(d, -0.05);
+    std::vector<std::pair<int, int>> E_ind2 = movie::around_Ef(d, -0.1);
+    std::vector<std::pair<int, int>> E_ind;
+    E_ind.reserve(E_ind1.size() + E_ind2.size());
+    E_ind.insert(E_ind.end(), E_ind1.begin(), E_ind1.end());
+    E_ind.insert(E_ind.end(), E_ind2.begin(), E_ind2.end());
+
+    movie argo(d, E_ind);
+
+    // set voltages
+    for (int i = 1; i < sig.N_t; ++i) {
+        for (int term : {S, D, G}) {
+            d.contacts[G]->V = sig.V[i][term];
+        }
+        d.time_step();
+    }
+    d.save();
+}
+
 static inline void test(char ** argv) {
     device d("nfet", ntype);
     auto t = transfer<false>(d.p, { { 0, .2, .2 } }, .2, 1);
@@ -275,6 +329,8 @@ int main(int argc, char ** argv) {
         ro(argv);
     } else if (stype == "gstep" && argc == 9) {
         gstep(argv);
+    } else if (stype == "gsine" && argc == 10) {
+        gsine(argv);
     } else if (stype == "test") {
         test(argv);
     } else {
