@@ -53,7 +53,7 @@ static inline void point(char ** argv) {
     double vd = stod(argv[4]);
     double vg = stod(argv[5]);
 
-    device d("ntype", ntype, {vs, vd, vg});
+    device d("ptype", ptype, {vs, vd, vg});
     d.steady_state();
     cout << "I = " << d.I[0].total[0] << std::endl;
 }
