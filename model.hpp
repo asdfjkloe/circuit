@@ -65,7 +65,7 @@ static const model ntfetc_model { // most general model
     0.30,             // E_gc (Claus et al)
     0.10 * c::m_e,    // m_efc (Claus et al)
     {
-        -0.552 / 2 - 0.01, // F[S] (p)
+        -0.552 / 2 - 0.02, // F[S] (p)
         +0.552 / 2 + 0.01, // F[D] (n)
          0.241                 // F[G]
     },
