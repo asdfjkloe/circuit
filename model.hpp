@@ -67,7 +67,7 @@ static const model ntfetc_model { // most general model
     {
         -0.552 / 2 - 0.02, // F[S] (p)
         +0.552 / 2 + 0.01, // F[D] (n)
-         0.22                 // F[G]
+         0.262                 // F[G]
     },
     0.             // gate voltage shift
 };
