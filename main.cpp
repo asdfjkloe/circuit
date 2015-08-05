@@ -231,7 +231,7 @@ static inline void gstep(char ** argv) {
     E_ind.insert(E_ind.end(), E_ind1.begin(), E_ind1.end());
     E_ind.insert(E_ind.end(), E_ind2.begin(), E_ind2.end());
 
-    movie argo(d, E_ind);
+    //movie argo(d, E_ind);
 
     // set voltages
     // (note: only V_g is needed, but I wanted to try it for later...)
