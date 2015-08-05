@@ -252,7 +252,7 @@ static inline void gsine(char ** argv) {
     double Vd    = stod(argv[5]);
     double beg   = stod(argv[6]);
     double len   = stod(argv[7]); // after begin
-    double f     = stod(argv[8]);
+    double f     = stod(argv[8]) * 2 * M_PI;
     double ph    = stod(argv[9]) * M_PI;
 
     double Vstart = V0 + Vamp * sin(ph);
