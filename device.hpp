@@ -21,9 +21,9 @@
 
 class device {
 public:
-    static constexpr double dphi_threshold_ss = 1e-12; // convergence threshold for dphi (steady state)
+    static constexpr double dphi_threshold_ss = 1e-6; // convergence threshold for dphi (steady state)
     static constexpr double dphi_threshold_td = 1e-9; // convergence threshold for dphi (time-evolution)
-    static constexpr int max_iterations = 100;      // maximum number of iterations before abortion
+    static constexpr int max_iterations = 50;      // maximum number of iterations before abortion
     static constexpr unsigned mem = 2000;          // maximum length of the memory integral
 
     // name
