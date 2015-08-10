@@ -33,9 +33,10 @@ static inline signal<N> linear_signal(double T, const voltage<N> & V0, const vol
 template<ulint N>
 static inline signal<N> sine_signal(double T, const voltage<N> & V0, const voltage<N> & VA, const double f, const double ph = 0);
 
-// create a cosine signal: V[i] = V0 + VA * cos(f * t_i + ph)
+// create a square wave signal: V[i] = V0 + VA * sgn[sin(f * t_i  + ph)]
+// NOTE: signal will be clipped to complete oscillations!
 template<ulint N>
-static inline signal<N> cosine_signal(double T, const voltage<N> & V0, const voltage<N> & VA, const double f, const double ph = 0);
+static inline signal<N> square_signal(double T, const voltage<N> & V0, const voltage<N> & VA, const double f, const double t_rise, const double t_fall);
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -86,15 +87,29 @@ signal<N> sine_signal(double T, const voltage<N> & V0, const voltage<N> & VA, co
 
     for (int i = 0; i < s.N_t; ++i) {
         double t = i * c::dt;
-        s[i] = V0 + VA * std::sin(t * f + ph);
+        s[i] = V0 + VA * std::sin(t * 2 * M_PI * f + ph);
     }
 
     return s;
 }
 template<ulint N>
-signal<N> cosine_signal(double T, const voltage<N> & V0, const voltage<N> & VA, const double f, const double ph) {
-    return sine_signal(T, V0, VA, f, ph + 0.5 * M_PI);
-}
+signal<N> square_signal(double T, const voltage<N> & V0, const voltage<N> & V1, const double f, const double t_rise, const double t_fall) {
+    signal<N> s(c::dt, V0);
 
+    signal<N> rise = linear_signal(t_rise, V0, V1);
+    signal<N> fall = linear_signal(t_fall, V1, V0);
+    signal<N>  low(.5/f - t_rise, V0);
+    signal<N> high(.5/f - t_fall, V1);
+
+    signal<N> osci = low + rise + high + fall;
+
+    int n_osci = std::floor(T * f);
+
+    for (int i = 0; i < n_osci; ++i) {
+        s = s + osci;
+    }
+
+    return s;
+}
 #endif
 

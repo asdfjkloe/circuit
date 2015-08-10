@@ -53,7 +53,7 @@ static inline void point(char ** argv) {
     double vd = stod(argv[4]);
     double vg = stod(argv[5]);
 
-    device d("ptype", ptype, {vs, vd, vg});
+    device d("ntype", ntype, {vs, vd, vg});
     d.steady_state();
     cout << "I = " << d.I[0].total[0] << std::endl;
 }
@@ -199,6 +199,17 @@ static inline void pot(char ** argv) {
     potential::plot2D(dev.p, { 0, vd, vg }, dev.n[0]);
 }
 
+static inline void den(char ** argv) {
+
+    double vd = stod(argv[3]);
+    double vg = stod(argv[4]);
+
+    device dev("test", ntype, voltage<3>{ 0, vd, vg });
+    dev.steady_state();
+
+    plot(make_pair(dev.p.x, dev.n[0].total));
+}
+
 static inline void gstep(char ** argv) {
     // time-dependent simulation with step-signal on the gate
 
@@ -244,6 +255,57 @@ static inline void gstep(char ** argv) {
     d.save();
 }
 
+static inline void gsquare(char ** argv) {
+
+    double V0    = stod(argv[3]);
+    double V1    = stod(argv[4]);
+    double Vd    = stod(argv[5]);
+    double rise  = stod(argv[6]);
+    double fall  = stod(argv[7]); // after begin
+    double f     = stod(argv[8]);
+    double T     = stod(argv[9]);
+
+
+    stringstream ss;
+    ss << "gate_square_signal/" << "f=" << f;
+    cout << "saving results in " << save_folder(ss.str()) << endl;
+
+    signal<3> sig = square_signal<3>(T, { 0, V0, Vd }, { 0, V1, Vd}, f, rise, fall);
+
+    vec vs(sig.N_t);
+    vec vd(sig.N_t);
+    vec vg(sig.N_t);
+    for (int i = 0; i < sig.N_t; ++i) {
+        vs(i) = sig.V[i][S];
+        vd(i) = sig.V[i][D];
+        vg(i) = sig.V[i][G];
+    }
+    plot(vs, vd, vg);
+
+    device d("nfet", ntype, sig.V[0]);
+    d.steady_state();
+    d.init_time_evolution(sig.N_t);
+
+//    // get energy indices around fermi energy and init movie
+//    std::vector<std::pair<int, int>> E_ind1 = movie::around_Ef(d, -0.05);
+//    std::vector<std::pair<int, int>> E_ind2 = movie::around_Ef(d, -0.1);
+//    std::vector<std::pair<int, int>> E_ind;
+//    E_ind.reserve(E_ind1.size() + E_ind2.size());
+//    E_ind.insert(E_ind.end(), E_ind1.begin(), E_ind1.end());
+//    E_ind.insert(E_ind.end(), E_ind2.begin(), E_ind2.end());
+
+//    //movie argo(d, E_ind);
+
+    // set voltages
+    for (int i = 1; i < sig.N_t; ++i) {
+        for (int term : {S, D, G}) {
+            d.contacts[G]->V = sig.V[i][term];
+        }
+        d.time_step();
+    }
+    d.save();
+}
+
 static inline void gsine(char ** argv) {
     // time-dependent simulation with step-signal on the gate
 
@@ -252,8 +314,8 @@ static inline void gsine(char ** argv) {
     double Vd    = stod(argv[5]);
     double beg   = stod(argv[6]);
     double len   = stod(argv[7]); // after begin
-    double f     = stod(argv[8]) * 2 * M_PI;
-    double ph    = stod(argv[9]) * M_PI;
+    double f     = stod(argv[8]);
+    double ph    = stod(argv[9]) * 2 * M_PI; // phase
 
     double Vstart = V0 + Vamp * sin(ph);
 
@@ -327,12 +389,16 @@ int main(int argc, char ** argv) {
         ldos(argv);
     } else if (stype == "pot" && argc == 5) {
         pot(argv);
+    } else if (stype == "den" && argc == 5) {
+        den(argv);
     } else if (stype == "ro" && argc == 6) {
         ro(argv);
     } else if (stype == "gstep" && argc == 9) {
         gstep(argv);
     } else if (stype == "gsine" && argc == 10) {
         gsine(argv);
+    } else if (stype == "gsquare" && argc == 10) {
+        gsquare(argv);
     } else if (stype == "test") {
         test(argv);
     } else {
