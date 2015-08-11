@@ -28,9 +28,9 @@ static const model nfetc_model { // most general model
     {
         +0.552 / 2 + 0.01, // F[S] (p)
         +0.552 / 2 + 0.01, // F[D] (n)
-         0                 // F[G]
+         0.06                 // F[G]
     },
-    0.00              // gate volatge shift
+    0.0              // gate volatge shift
 };
 
 static const model nfet_model {
