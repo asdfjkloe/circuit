@@ -15,7 +15,6 @@ public:
     double E_gc;
     double m_efc;
     std::array<double, 3> F;
-    double shift;
 
     inline std::string to_string();
 };
@@ -29,8 +28,7 @@ static const model nfetc_model { // most general model
         +0.552 / 2 + 0.01, // F[S] (p)
         +0.552 / 2 + 0.01, // F[D] (n)
          0.06                 // F[G]
-    },
-    0.0              // gate volatge shift
+    }
 };
 
 static const model nfet_model {
@@ -42,8 +40,7 @@ static const model nfet_model {
         nfetc_model.F[S],
         nfetc_model.F[D],
         nfetc_model.F[G]
-    },
-    nfetc_model.shift
+    }
 };
 
 static const model pfet_model {
@@ -55,8 +52,7 @@ static const model pfet_model {
         -nfet_model.F[S],  // F[S]
         -nfet_model.F[D],  // F[D]
         -nfet_model.F[G]  // F[G]
-    },
-    -nfet_model.shift
+    }
 };
 
 static const model ntfetc_model { // most general model
@@ -67,9 +63,8 @@ static const model ntfetc_model { // most general model
     {
         -0.552 / 2 - 0.01, // F[S] (p)
         +0.552 / 2 + 0.01, // F[D] (n)
-         0.                // F[G]
-    },
-    0.261             // gate voltage shift
+         0.261                // F[G]
+    }
 };
 
 static const model ntfet_model {
@@ -81,8 +76,7 @@ static const model ntfet_model {
         ntfetc_model.F[S],
         ntfetc_model.F[D],
         ntfetc_model.F[G]
-    },
-    ntfetc_model.shift
+    }
 };
 
 static const model ptfet_model {
@@ -94,8 +88,7 @@ static const model ptfet_model {
         -ntfet_model.F[S],  // F[S] (n)
         -ntfet_model.F[D],  // F[D] (p)
         -ntfet_model.F[G]   // F[G]
-    },
-    -ntfet_model.shift // characteristics are perfectly symmetrical
+    }
 };
 
 std::string model::to_string() {
@@ -110,7 +103,6 @@ std::string model::to_string() {
     ss << "F_s     = " << F[S]  << endl;
     ss << "F_d     = " << F[D]  << endl;
     ss << "F_g     = " << F[G]  << endl;
-    ss << "shift   = " << shift << endl;
 
     return ss.str();
 }
