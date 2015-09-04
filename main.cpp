@@ -33,8 +33,8 @@ using namespace arma;
 using namespace std;
 
 // set the type of device (mosfet or tfet)
-static device_params ntype = nfet;
-static device_params ptype = pfet;
+static device_params ntype = ntfet;
+static device_params ptype = ptfet;
 
 static inline void setup() {
     // disable nested parallelism globally

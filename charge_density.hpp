@@ -98,9 +98,8 @@ charge_density::charge_density(const device_params & p, const potential & phi, a
         return A;
     };
 
-    // scale according to given device geometry
-    //double scale = - 0.5 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
-    double scale = - c::e / M_PI;
+    // scale
+    double scale = - c::e / M_PI / 4 / M_PI;
 
     // calculate integrals (adaptively) and output the energy lattice and weights that were used
     lv = scale * integral(I_l, p.N_x, i_lv, rel_tol, c::epsilon(), E0[LV], W[LV]);
@@ -156,8 +155,7 @@ charge_density::charge_density(const device_params & p, const potential & phi, c
     };
 
     // scaling
-    //double scale = - 0.5 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
-    double scale = - c::e / M_PI;
+    double scale = - c::e / M_PI / 4 / M_PI;
 
     // calculate charge_density for each wave_packet
     lv = scale * get_n(psi[LV]);
@@ -421,19 +419,19 @@ arma::vec charge_density::get_n0(const device_params & p) {
         double dos = E / sqrt(4*p.t1*p.t1*p.t2*p.t2 - (E*E - p.t1*p.t1 - p.t2*p.t2) * (E*E - p.t1*p.t1 - p.t2*p.t2));
         vec ret = arma::vec(3);
         ret(0) = (1 - fermi(E, p.F[S])) * dos;
-        ret(1) = (1 - fermi(E, p.F[G])) * dos;
-//        ret(1) = (1 - fermi(E, 0)) * dos;
+//        ret(1) = (1 - fermi(E, p.F[G])) * dos;
+        ret(1) = (1 - fermi(E, 0)) * dos;
         ret(2) = (1 - fermi(E, p.F[D])) * dos;
         return ret;
     }, 3, linspace(E_min, - 0.5 * p.E_g, 100), rel_tol, c::epsilon(), x2, w2);
 
     // conduction band in central region
     vec ncsgd = integral([&] (double E) {
-        double dos = E / sqrt(4*p.t1*p.t1*p.t2*p.t2 - (E*E - p.t1*p.t1 - p.t2*p.t2) * (E*E - p.t1*p.t1 - p.t2*p.t2));
+        double dos = E / M_PI / sqrt(4*p.t1*p.t1*p.t2*p.t2 - (E*E - p.t1*p.t1 - p.t2*p.t2) * (E*E - p.t1*p.t1 - p.t2*p.t2));
         vec ret = arma::vec(3);
         ret(0) = fermi(E, p.F[S]) * dos;
-        ret(1) = fermi(E, p.F[G]) * dos;
-//        ret(1) = fermi(E, 0) * dos;
+//        ret(1) = fermi(E, p.F[G]) * dos;
+        ret(1) = fermi(E, 0) * dos;
         ret(2) = fermi(E, p.F[D]) * dos;
         return ret;
     }, 3, linspace(0.5 * p.E_g, E_max, 100), rel_tol, c::epsilon(), x3, w3);
@@ -456,8 +454,7 @@ arma::vec charge_density::get_n0(const device_params & p) {
     }
     ret.rows(p.dc.a, p.N_x - 1).fill(nc(1));
 
-    //ret *= 2 * c::e / M_PI / M_PI / p.r_cnt / p.dr / p.dx;
-    ret *= 4 * c::e / M_PI;
+    ret *= c::e / M_PI;
 
     // save and return n0
     n0[p.name] = ret;
