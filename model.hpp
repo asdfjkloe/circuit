@@ -63,7 +63,7 @@ static const model ntfetc_model { // most general model
     {
         -0.552 / 2 - 0.01, // F[S] (p)
         +0.552 / 2 + 0.01, // F[D] (n)
-         0.25              // F[G]
+         0.              // F[G]
     }
 };
 

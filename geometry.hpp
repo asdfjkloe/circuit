@@ -55,7 +55,7 @@ static const geometry tfet_geometry {
 .5 * 1.3, // r_cnt (16,0)
      1.0, // d_ox
      2.0, // r_ext
-     0.4, // dx
+     0.1, // dx
      0.1  // dr
 };
 

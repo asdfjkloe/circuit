@@ -398,7 +398,7 @@ arma::vec charge_density::get_n0(const device_params & p) {
 
     // valence band in contact region
     vec nvc = integral([&] (double E) {
-        double dos = E / sqrt(4*p.tc1*p.tc1*p.tc2*p.tc2 - (E*E - p.tc1*p.tc1 - p.tc2*p.tc2) * (E*E - p.tc1*p.tc1 - p.tc2*p.tc2));
+        double dos = E / M_PI / sqrt(4*p.tc1*p.tc1*p.tc2*p.tc2 - (E*E - p.tc1*p.tc1 - p.tc2*p.tc2) * (E*E - p.tc1*p.tc1 - p.tc2*p.tc2));
         vec ret = arma::vec(2);
         ret(0) = (1 - fermi(E, p.F[S])) * dos;
         ret(1) = (1 - fermi(E, p.F[D])) * dos;
@@ -407,7 +407,7 @@ arma::vec charge_density::get_n0(const device_params & p) {
 
     // conduction band in contact region
     vec ncc = integral([&] (double E) {
-        double dos = E / sqrt(4*p.tc1*p.tc1*p.tc2*p.tc2 - (E*E - p.tc1*p.tc1 - p.tc2*p.tc2) * (E*E - p.tc1*p.tc1 - p.tc2*p.tc2));
+        double dos = E / M_PI / sqrt(4*p.tc1*p.tc1*p.tc2*p.tc2 - (E*E - p.tc1*p.tc1 - p.tc2*p.tc2) * (E*E - p.tc1*p.tc1 - p.tc2*p.tc2));
         vec ret = arma::vec(2);
         ret(0) = fermi(E, p.F[S]) * dos;
         ret(1) = fermi(E, p.F[D]) * dos;
@@ -416,7 +416,7 @@ arma::vec charge_density::get_n0(const device_params & p) {
 
     // valence band in central region
     vec nvsgd = integral([&] (double E) {
-        double dos = E / sqrt(4*p.t1*p.t1*p.t2*p.t2 - (E*E - p.t1*p.t1 - p.t2*p.t2) * (E*E - p.t1*p.t1 - p.t2*p.t2));
+        double dos = E / M_PI / sqrt(4*p.t1*p.t1*p.t2*p.t2 - (E*E - p.t1*p.t1 - p.t2*p.t2) * (E*E - p.t1*p.t1 - p.t2*p.t2));
         vec ret = arma::vec(3);
         ret(0) = (1 - fermi(E, p.F[S])) * dos;
 //        ret(1) = (1 - fermi(E, p.F[G])) * dos;
