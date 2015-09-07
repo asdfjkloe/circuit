@@ -56,14 +56,14 @@ static const model pfet_model {
 };
 
 static const model ntfetc_model { // most general model
-    0.552,            // E_g (16,0)-tube
+    0.45,            // E_g (Claus et al)
     0.04 * c::m_e,    // m_eff (Claus et al)
     0.30,             // E_gc (Claus et al)
     0.10 * c::m_e,    // m_efc (Claus et al)
     {
-        -0.552 / 2 - 0.01, // F[S] (p)
-        +0.552 / 2 + 0.01, // F[D] (n)
-         0.25              // F[G]
+        -0.45 / 2 - 0.01, // F[S] (p)
+        +0.45 / 2 + 0.01, // F[D] (n)
+         0.             // F[G]
     }
 };
 
